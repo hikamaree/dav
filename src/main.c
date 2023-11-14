@@ -2,11 +2,12 @@
 #include <raylib.h>
 
 int main() {
-    InitWindow(1200, 900, "visualizer");
-    SetTargetFPS(60);
     PaStream* stream;
     AudioData data;
     start_audio_server(stream, &data);
+
+    InitWindow(1200, 900, "visualizer");
+    SetTargetFPS(60);
 
     while(!WindowShouldClose()) {
         BeginDrawing();

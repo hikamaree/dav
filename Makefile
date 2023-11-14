@@ -6,10 +6,10 @@ BINARY=build/audio
 CXX=gcc
 GDB=gdb
 MKDIR=mkdir -p
-RM=rm -r
+RM=rm -rf
 
 LDFLAGS=-lraylib -lm -lportaudio
-CXXFLAGS=-Wall -I $(LIB_DIR) -O3
+CXXFLAGS=-Wall -I $(LIB_DIR) -O3 -MD -MP
 
 SOURCES=$(wildcard $(SRC_DIR)/*.c)
 OBJECTS=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
@@ -31,3 +31,5 @@ run: compile
 
 clean:
 	$(RM) $(BUILD_DIR)
+
+-include $(OBJECTS:.o=.d)
