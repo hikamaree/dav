@@ -8,13 +8,9 @@
 #include <pthread.h>
 #include <portaudio.h>
 
-#define SAMPLE_RATE 48000
 #define FRAMES_PER_BUFFER 256
-#define DEVICE 10 // ovde upisi svoj device majmuuunnnneeee
 
 #define MAX(a,b) a > b ? a : b
-
-extern float left, right;
 
 typedef struct {
     float left;

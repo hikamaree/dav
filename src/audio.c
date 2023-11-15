@@ -1,8 +1,6 @@
 #include "audio.h"
 
-float left, right;
-
-void print_devices() {
+int print_devices() {
     int numDevices = Pa_GetDeviceCount();
     printf("Number of devices: %d\n", numDevices);
 
@@ -16,12 +14,19 @@ void print_devices() {
     const PaDeviceInfo* deviceInfo;
     for (int i = 0; i < numDevices; i++) {
         deviceInfo = Pa_GetDeviceInfo(i);
-        printf("Device %d:\n", i);
+        printf("Device %d:\n", i + 1);
         printf("  name: %s\n", deviceInfo->name);
         printf("  maxInputChannels: %d\n", deviceInfo->maxInputChannels);
         printf("  maxOutputChannels: %d\n", deviceInfo->maxOutputChannels);
         printf("  defaultSampleRate: %f\n", deviceInfo->defaultSampleRate);
     }
+
+    int i = 0;
+    while (i < 1 || i > numDevices) {
+	    printf("Enter device number [1, %d]\n", numDevices);
+	    scanf("%d", &i);
+    }
+    return i - 1;
 }
 
 int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer,
@@ -30,8 +35,13 @@ int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long fr
     AudioData *data = (AudioData*)userData;
     float* in = (float*)inputBuffer;
 
-    data -> left = 0;
-    data -> right = 0;
+    if (data->left > 0) {
+	    data->left -= 0.005;
+    }
+
+    if (data->right > 0) {
+	    data->right -= 0.005;
+    }
 
     for (unsigned long i = 0; i < framesPerBuffer * 2; i += 2) {
         data -> left = MAX(data -> left, fabs(in[i]));
@@ -43,8 +53,7 @@ int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long fr
 
 void start_audio_server(PaStream *stream, AudioData *data) {
     Pa_Initialize();
-    print_devices();
-    int device = DEVICE;
+    int device = print_devices();
 
     PaStreamParameters inputParameters;
     memset(&inputParameters, 0, sizeof(inputParameters));
@@ -54,7 +63,7 @@ void start_audio_server(PaStream *stream, AudioData *data) {
     inputParameters.sampleFormat = paFloat32;
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(device)->defaultLowInputLatency;
 
-    Pa_OpenStream(&stream, &inputParameters, NULL, SAMPLE_RATE, FRAMES_PER_BUFFER, paNoFlag, patestCallback, data);
+    Pa_OpenStream(&stream, &inputParameters, NULL, Pa_GetDeviceInfo(device)->defaultSampleRate, FRAMES_PER_BUFFER, paNoFlag, patestCallback, data);
     Pa_StartStream(stream);
 }
 
