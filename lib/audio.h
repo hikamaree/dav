@@ -13,8 +13,8 @@
 #define MAX(a,b) a > b ? a : b
 
 typedef struct {
-    float left;
-    float right;
+    int chanel_cnt;
+    float *chanels;
 } AudioData;
 
 void start_audio_server(PaStream *stream, AudioData *data);

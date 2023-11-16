@@ -23,29 +23,31 @@ int print_devices() {
 
     int i = 0;
     while (i < 1 || i > numDevices) {
-	    printf("Enter device number [1, %d]\n", numDevices);
-	    scanf("%d", &i);
+        printf("Enter device number [1, %d]\n", numDevices);
+        scanf("%d", &i);
     }
     return i - 1;
 }
 
 int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer,
-    const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
+        const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
 
     AudioData *data = (AudioData*)userData;
     float* in = (float*)inputBuffer;
 
-    if (data->left > 0) {
-	    data->left -= 0.005;
+    for(int i = 0; i < data->chanel_cnt; i++) {
+        if (data->chanels[i] > 0) {
+            data->chanels[i] -= 0.01;
+        }
     }
-
-    if (data->right > 0) {
-	    data->right -= 0.005;
-    }
-
-    for (unsigned long i = 0; i < framesPerBuffer * 2; i += 2) {
-        data -> left = MAX(data -> left, fabs(in[i]));
-        data -> right = MAX(data -> right, fabs(in[i + 1]));
+    //ide left right front back
+    //a meni treba redosled right front left back
+    //ovo radi kad je paran broj chanela
+    for (unsigned long i = 0; i < framesPerBuffer * data->chanel_cnt; i += data->chanel_cnt) {
+        for(int j = 0; j < data->chanel_cnt / 2; j++) {
+            data -> chanels[j] = MAX(data -> chanels[j], fabs(in[2 * j + 1]));
+            data -> chanels[j + data->chanel_cnt / 2] = MAX(data -> chanels[j + data->chanel_cnt / 2], fabs(in[2 * j]));
+        }
     }
 
     return 0;
@@ -57,11 +59,13 @@ void start_audio_server(PaStream *stream, AudioData *data) {
 
     PaStreamParameters inputParameters;
     memset(&inputParameters, 0, sizeof(inputParameters));
-    inputParameters.channelCount = 2;
+    inputParameters.channelCount = Pa_GetDeviceInfo(device)->maxInputChannels;
     inputParameters.device = device;
     inputParameters.hostApiSpecificStreamInfo = NULL;
     inputParameters.sampleFormat = paFloat32;
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(device)->defaultLowInputLatency;
+    data->chanel_cnt = inputParameters.channelCount;
+    data->chanels = calloc(data->chanel_cnt, sizeof(float));
 
     Pa_OpenStream(&stream, &inputParameters, NULL, Pa_GetDeviceInfo(device)->defaultSampleRate, FRAMES_PER_BUFFER, paNoFlag, patestCallback, data);
     Pa_StartStream(stream);
