@@ -10,14 +10,16 @@
 
 #define FRAMES_PER_BUFFER 256
 
-#define MAX(a,b) a > b ? a : b
+#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 typedef struct {
+    int device;
+    PaStream *stream;
     int chanel_cnt;
     float *chanels;
 } AudioData;
 
-void start_audio_server(PaStream *stream, AudioData *data);
-void close_audio_server(PaStream *stream);
+void start_stream(AudioData *data);
+void close_stream(AudioData *data);
 
 #endif

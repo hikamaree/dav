@@ -1,38 +1,16 @@
-#include "audio.h"
-#include <raylib.h>
+#include "ui.h"
 
-int main() {
-    PaStream* stream;
+int main(int argc, char **argv) {
     AudioData data;
-    start_audio_server(stream, &data);
 
-    float window_width = 900;
-    float window_height = 900;
-    float radius = 200;
-    float space = 50;
-    float delta, x, y;
+    GtkApplication *app;
+    int status;
 
-    InitWindow(window_width, window_height, "visualizer");
-    SetTargetFPS(360);
+    app = gtk_application_new ("org.gtk.dav", G_APPLICATION_DEFAULT_FLAGS);
+    g_signal_connect (app, "activate", G_CALLBACK (activate), &data);
+    status = g_application_run (G_APPLICATION (app), argc, argv);
+    g_object_unref (app);
 
-    while(!WindowShouldClose()) {
-        delta = 2 * PI / data.chanel_cnt;
-
-        BeginDrawing();
-        ClearBackground(BLANK);
-        DrawCircleLines(window_width / 2, window_height / 2, space, WHITE);
-
-        for(int i = 0; i < data.chanel_cnt; i += 2) {
-            x = (radius + space) * cos(i * delta / 2);
-            y = (radius + space) * sin(i * delta / 2);
-
-            DrawCircle(window_width / 2 - x, window_height / 2 - y, data.chanels[i] * radius, RED);
-            DrawCircle(window_width / 2 + x, window_height / 2 + y, data.chanels[i + 1] * radius, RED);
-        }
-        EndDrawing();
-    }
-
-    free(data.chanels);
-    close_audio_server(stream);
-    return 0;
+    close_stream(&data);
+    return status;
 }
