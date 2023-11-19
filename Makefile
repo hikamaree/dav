@@ -8,8 +8,8 @@ GDB=gdb
 MKDIR=mkdir -p
 RM=rm -rf
 
-LDFLAGS=$(shell pkg-config --libs gtk4) -lraylib -lm -lportaudio
-CXXFLAGS=-Wall -I$(LIB_DIR) $(shell pkg-config --cflags gtk4) -O3 -MD -MP
+LDFLAGS=-lraylib -lm -lportaudio
+CXXFLAGS=-Wall -I $(LIB_DIR) -O3 -MD -MP
 
 SOURCES=$(wildcard $(SRC_DIR)/*.c)
 OBJECTS=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))

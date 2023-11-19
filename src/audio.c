@@ -1,6 +1,6 @@
 #include "audio.h"
 
-void print_devices() {
+int print_devices() {
     int numDevices = Pa_GetDeviceCount();
     printf("Number of devices: %d\n", numDevices);
 
@@ -20,6 +20,13 @@ void print_devices() {
         printf("  maxOutputChannels: %d\n", deviceInfo->maxOutputChannels);
         printf("  defaultSampleRate: %f\n", deviceInfo->defaultSampleRate);
     }
+
+    int i = 0;
+    while (i < 1 || i > numDevices) {
+        printf("Enter device number [1, %d]\n", numDevices);
+        scanf("%d", &i);
+    }
+    return i - 1;
 }
 
 int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer,
@@ -39,38 +46,30 @@ int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long fr
             data -> chanels[j] = MAX(data -> chanels[j], fabs(in[i + j]));
         }
     }
+
     return 0;
 }
 
-void start_stream(AudioData *data) {
-    close_stream(data);
+void start_audio_server(PaStream *stream, AudioData *data) {
     Pa_Initialize();
-    print_devices();
+    int device = print_devices();
 
     PaStreamParameters inputParameters;
     memset(&inputParameters, 0, sizeof(inputParameters));
-    inputParameters.channelCount = Pa_GetDeviceInfo(data->device)->maxInputChannels;
-    inputParameters.device = data->device;
+    inputParameters.channelCount = Pa_GetDeviceInfo(device)->maxInputChannels;
+    inputParameters.device = device;
     inputParameters.hostApiSpecificStreamInfo = NULL;
     inputParameters.sampleFormat = paFloat32;
-    inputParameters.suggestedLatency = Pa_GetDeviceInfo(data->device)->defaultLowInputLatency;
-
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo(device)->defaultLowInputLatency;
     data->chanel_cnt = inputParameters.channelCount;
     data->chanels = calloc(data->chanel_cnt, sizeof(float));
 
-    Pa_OpenStream(&data->stream, &inputParameters, NULL, Pa_GetDeviceInfo(data->device)->defaultSampleRate, FRAMES_PER_BUFFER, paNoFlag, patestCallback, data);
-    Pa_StartStream(data->stream);
+    Pa_OpenStream(&stream, &inputParameters, NULL, Pa_GetDeviceInfo(device)->defaultSampleRate, FRAMES_PER_BUFFER, paNoFlag, patestCallback, data);
+    Pa_StartStream(stream);
 }
 
-void close_stream(AudioData *data) {
-    if (data->stream != NULL) {
-        Pa_StopStream(data->stream);
-        Pa_CloseStream(data->stream);
-        Pa_Terminate();
-        data->stream = NULL;
-    }
-
-    if(data->chanels) {
-        free(data->chanels);
-    }
+void close_audio_server(PaStream *stream) {
+    Pa_StopStream(stream);
+    Pa_CloseStream(stream);
+    Pa_Terminate();
 }
