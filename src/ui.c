@@ -23,7 +23,7 @@ void setup_ui(UserInterface *ui) {
 	strcpy(ui->device_name, "N/A");
 
 	ui->show_style = false;
-	strcpy(ui->style, "Default");
+	strcpy(ui->style, "CYBER");
 }
 
 void print_devices(AudioData *data, UserInterface *ui) {
