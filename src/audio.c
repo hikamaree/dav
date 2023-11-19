@@ -37,13 +37,16 @@ int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long fr
 
     for(int i = 0; i < data->chanel_cnt; i++) {
         if (data->chanels[i] > 0) {
-            data->chanels[i] -= 0.005;
+            data->chanels[i] -= 0.01;
         }
     }
-
+    //ide left right front back
+    //a meni treba redosled right front left back
+    //ovo radi kad je paran broj chanela
     for (unsigned long i = 0; i < framesPerBuffer * data->chanel_cnt; i += data->chanel_cnt) {
-        for(int j = 0; j < data->chanel_cnt; j++) {
-            data -> chanels[j] = MAX(data -> chanels[j], fabs(in[i + j]));
+        for(int j = 0; j < data->chanel_cnt / 2; j++) {
+            data -> chanels[j] = MAX(data -> chanels[j], fabs(in[2 * j + 1]));
+            data -> chanels[j + data->chanel_cnt / 2] = MAX(data -> chanels[j + data->chanel_cnt / 2], fabs(in[2 * j]));
         }
     }
 
