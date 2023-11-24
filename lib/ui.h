@@ -2,6 +2,7 @@
 #define UI_H
 
 #include "audio.h"
+#include "util.h"
 #include <stdbool.h>
 #include <string.h>
 
@@ -12,11 +13,12 @@ typedef struct ui{
 	bool show_devices;
 	char device_name[100];
 
-	bool show_style;
-	char style[100];
+	char style_name[10];
+	int style;
+
+	bool show_ui;
 } UserInterface;
 
 void draw(AudioData *data, UserInterface *ui);
-void setup_ui(UserInterface *ui);
 
 #endif

@@ -3,7 +3,6 @@
 int main() {
 	AudioData data;
 	UserInterface ui;
-	setup_ui(&ui);
 
 	Pa_Initialize();
 

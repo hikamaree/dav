@@ -15,6 +15,7 @@
 typedef struct {
 	PaStream *stream;
 	int device;
+	float speed;
 	int channel_cnt;
 	float *channels;
 } AudioData;

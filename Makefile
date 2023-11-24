@@ -3,7 +3,7 @@ LIB_DIR=lib
 BUILD_DIR=build
 BINARY=build/audio
 
-CXX=gcc
+CXX=gcc#x86_64-w64-mingw32-gcc
 GDB=gdb
 MKDIR=mkdir -p
 RM=rm -rf

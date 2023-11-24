@@ -6,7 +6,7 @@ int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long fr
 
 	for (int i = 0; i < data->channel_cnt; i++) {
 		if (data->channels[i] > 0) {
-			data->channels[i] -= 0.005;
+			data->channels[i] -= data->speed / 100000;
 		}
 	}
 
