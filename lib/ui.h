@@ -7,8 +7,12 @@
 
 typedef struct {
 	GtkWidget* visualizer;
+	GtkWidget* window;
+	GtkWidget* header;
+	GtkWidget* grid;
 	GtkWidget* devices;
 	GtkWidget* start_stop;
+	GtkWidget* device_name;
 	StreamData* stream;
 	int radius;
 	int space;
@@ -16,6 +20,7 @@ typedef struct {
 
 extern int device;
 
-void create_window(AppData* data);
+void create_window(AppData*);
+void show_notification(AppData*, const char*);
 
 #endif

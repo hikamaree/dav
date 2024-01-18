@@ -50,7 +50,6 @@ void close_stream(StreamData *data) {
 		Pa_CloseStream(data->stream);
 		data->stream = NULL;
 	}
-
 	if (data->channels) {
 		free(data->channels);
 		data->channels = NULL;

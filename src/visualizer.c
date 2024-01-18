@@ -31,11 +31,12 @@ void start_stop(GtkWidget *widget, gpointer d) {
 	AppData* data = (AppData*)d;
 	if (data->visualizer == NULL) {
 		if(device < 0 || device > Pa_GetDeviceCount()) {
-			g_print("select device\n");
+			show_notification(data, "\tSelect valid source\t");
 			return;
 		}
 		data->stream->device = device;
 		start_stream(data->stream);
+		gtk_label_set_text(GTK_LABEL(data->device_name), Pa_GetDeviceInfo(device)->name);
 		gtk_button_set_label(GTK_BUTTON(data->start_stop), "Stop");
 		data->visualizer = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 		gtk_window_set_type_hint(GTK_WINDOW(data->visualizer), GDK_WINDOW_TYPE_HINT_TOOLTIP);
