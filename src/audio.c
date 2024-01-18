@@ -1,7 +1,7 @@
 #include "audio.h"
 
 int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
-	AudioData* data = (AudioData*)userData;
+	StreamData* data = (StreamData*)userData;
 	float* in = (float*)inputBuffer;
 
 	for (int i = 0; i < data->channel_cnt; i++) {
@@ -19,7 +19,7 @@ int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long fr
 	return 0;
 }
 
-void start_stream(AudioData *data) {
+void start_stream(StreamData *data) {
 	close_stream(data);
 	if(data->device > Pa_GetDeviceCount()) return;
 
@@ -38,13 +38,13 @@ void start_stream(AudioData *data) {
 	Pa_StartStream(data->stream);
 }
 
-void refresh_devices(AudioData *data) {
+void refresh_devices(StreamData *data) {
 	close_stream(data);
 	Pa_Terminate();
 	Pa_Initialize();
 }
 
-void close_stream(AudioData *data) {
+void close_stream(StreamData *data) {
 	if (data->stream != NULL) {
 		Pa_StopStream(data->stream);
 		Pa_CloseStream(data->stream);

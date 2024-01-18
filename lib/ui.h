@@ -1,24 +1,21 @@
 #ifndef UI_H
 #define UI_H
 
+#include <gtk/gtk.h>
 #include "audio.h"
-#include "util.h"
-#include <stdbool.h>
-#include <string.h>
+#include "visualizer.h"
 
-typedef struct ui{
-	float radius;
-	float space;
+typedef struct {
+	GtkWidget* visualizer;
+	GtkWidget* devices;
+	GtkWidget* start_stop;
+	StreamData* stream;
+	int radius;
+	int space;
+} AppData;
 
-	bool show_devices;
-	char device_name[100];
+extern int device;
 
-	char style_name[10];
-	int style;
-
-	bool show_ui;
-} UserInterface;
-
-void draw(AudioData *data, UserInterface *ui);
+void create_window(AppData* data);
 
 #endif

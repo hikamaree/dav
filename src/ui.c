@@ -1,180 +1,111 @@
 #include "ui.h"
 
-#define RAYGUI_IMPLEMENTATION
-#include <raygui.h>
-
-#include "../styles/ashes/style_ashes.h"
-#include "../styles/bluish/style_bluish.h"
-#include "../styles/candy/style_candy.h"
-#include "../styles/cherry/style_cherry.h"
-#include "../styles/cyber/style_cyber.h"
-#include "../styles/dark/style_dark.h"
-#include "../styles/enefete/style_enefete.h"
-#include "../styles/jungle/style_jungle.h"
-#include "../styles/lavanda/style_lavanda.h"
-#include "../styles/sunny/style_sunny.h"
-#include "../styles/terminal/style_terminal.h"
-
-void setup_ui(UserInterface *ui) {
-	ui->radius = 200;
-	ui->space = 200;
-
-	ui->show_devices = false;
-	strcpy(ui->device_name, "N/A");
-
-	strcpy(ui->style_name, "CYBER");
-	ui->style = 4;
-
-	ui->show_ui = true;
+void select_device(GtkWidget* widget, gpointer d) {
+	int data = GPOINTER_TO_INT(d);
+	device = data;
 }
 
-void print_devices(AudioData *data, UserInterface *ui) {
-	if(GuiButton((Rectangle){20, 20, 300, 50}, ui->device_name)) {
-		ui->show_devices = !ui->show_devices;
+void refresh(GtkWidget *widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	if(data->visualizer != NULL) {
+		start_stop(NULL, data);
 	}
 
-	if(ui->show_devices){
-		int numDevices = Pa_GetDeviceCount();
-		const PaDeviceInfo* deviceInfo;
-		int x = 1;
+	refresh_devices(data->stream);
 
-		char *name;
-		for (int i = 0; i < numDevices; i++) {
-			deviceInfo = Pa_GetDeviceInfo(i);
-			if(deviceInfo->maxInputChannels > 0 && deviceInfo->maxInputChannels < 8) {
-				data->device = i;
-				name = get_name((char*)deviceInfo->name, 36, 3);
-				if(GuiButton((Rectangle){20, 60 * (x++) + 20, 300, 50}, name)) {
-					strcpy(ui->device_name, name);
-					ui->show_devices = !ui->show_devices;
-					start_stream(data);
-				}
-				free(name);
-			}
+	GList *children = gtk_container_get_children(GTK_CONTAINER(data->devices));
+	for (GList *iter = children; iter != NULL; iter = g_list_next(iter)) {
+		GtkWidget *menuItem = GTK_WIDGET(iter->data);
+		gtk_container_remove(GTK_CONTAINER(data->devices), menuItem);
+		g_object_unref(menuItem);
+	}
+	g_list_free(children);
+
+	int cnt = Pa_GetDeviceCount();
+	const PaDeviceInfo* device_info;
+	for (int device = 0; device < cnt; device++) {
+		device_info = Pa_GetDeviceInfo(device);
+		if(device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
+			GtkWidget *menuItem = gtk_menu_item_new_with_label(device_info->name);
+			g_signal_connect(G_OBJECT(menuItem), "activate", G_CALLBACK(select_device), GINT_TO_POINTER(device));
+			gtk_menu_shell_append(GTK_MENU_SHELL(data->devices), menuItem);
+			gtk_widget_show(menuItem);
 		}
 	}
+	device = -1;
 }
 
-void refresh_button(AudioData *data, UserInterface *ui) {
-	if(GuiButton((Rectangle){20, GetRenderHeight() - 70, 200, 50}, "Refresh")) {
-		strcpy(ui->device_name, "N/A");
-		ui->show_devices = false;
-		refresh_devices(data);
-	}
+void set_radius(GtkWidget *widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	data->radius = gtk_range_get_value(GTK_RANGE(widget));
 }
 
-void draw_widget(AudioData *data, UserInterface *ui) {
-	float delta = 2 * PI / data->channel_cnt;
-	float width = GetRenderWidth();;
-	float height = GetRenderHeight();;
-	float x, y;
-	Color color = GetColor(GuiGetStyle(DEFAULT, BASE_COLOR_PRESSED));
-	for (int i = 0; i < data->channel_cnt; i += 2) {
-		x = (ui->space) * cos(i * delta / 2);
-		y = (ui->space) * sin(i * delta / 2);
-
-		DrawCircle(width / 2 - x, height / 2 - y, data->channels[i] * ui->radius, color);
-		DrawCircle(width / 2 + x, height / 2 + y, data->channels[i + 1] * ui->radius, color);
-	}
+void set_space(GtkWidget *widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	data->space = gtk_range_get_value(GTK_RANGE(widget));
 }
 
-void widget_settings(AudioData *data, UserInterface *ui) {
-	GuiGroupBox((Rectangle){340, 20, 400, 190}, " VISUALIZER SETTINGS");
-	GuiSliderBar((Rectangle){400, 40, 280, 30},  "SPACE ", TextFormat("%i", (int)ui->space), &ui->space, 0, 1000);
-	GuiSliderBar((Rectangle){400, 100, 280, 30}, "RADIUS", TextFormat("%i", (int)ui->radius), &ui->radius, 0, 1000);
-	GuiSliderBar((Rectangle){400, 160, 280, 30}, "SPEED ", TextFormat("%i", (int)data->speed), &data->speed, 0, 1000);
+void set_speed(GtkWidget *widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	data->stream->speed = gtk_range_get_value(GTK_RANGE(widget));
 }
 
-void set_style(UserInterface *ui) {
-	int x = GetScreenWidth() - 220;
-	if(GuiButton((Rectangle){x, 20, 200, 50}, ui->style_name)) {
-		ui->style = (ui->style + 1) % 12;
-		switch(ui->style) {
-			case 0:
-				strcpy(ui->style_name, "ASHES");
-				GuiLoadStyleAshes();
-				break;
-			case 1:
-				strcpy(ui->style_name, "BLUISH");
-				GuiLoadStyleBluish();
-				break;
-			case 2:
-				strcpy(ui->style_name, "CANDY");
-				GuiLoadStyleCandy();
-				break;
-			case 3:
-				strcpy(ui->style_name, "CHERRY");
-				GuiLoadStyleCherry();
-				break;
-			case 4:
-				strcpy(ui->style_name, "CYBER");
-				GuiLoadStyleCyber();
-				break;
-			case 5:
-				strcpy(ui->style_name, "DARK");
-				GuiLoadStyleDark();
-				break;
-			case 6:
-				strcpy(ui->style_name, "DEFAULT");
-				GuiLoadStyleDefault();
-				break;
-			case 7:
-				strcpy(ui->style_name, "ENEFETE");
-				GuiLoadStyleEnefete();
-				break;
-			case 8:
-				strcpy(ui->style_name, "JUNGLE");
-				GuiLoadStyleJungle();
-				break;
-			case 9:
-				strcpy(ui->style_name, "LAVANDA");
-				GuiLoadStyleLavanda();
-				break;
-			case 10:
-				strcpy(ui->style_name, "SUNNY");
-				GuiLoadStyleSunny();
-				break;
-			case 11:
-				strcpy(ui->style_name, "TERMINAL");
-				GuiLoadStyleTerminal();
-				break;
-		}
-	}
-}
+void create_window(AppData* data) {
+	data->visualizer = NULL;
+	data->devices = gtk_menu_new();
+	data->radius = 100;
+	data->space = 200;
+	data->stream->speed = 400;
 
-void hide_ui(UserInterface *ui) {
-	if(GuiButton((Rectangle){GetRenderWidth() - 220, GetRenderHeight() - 70, 200, 50}, ui->show_ui ? "HIDE UI" : "SHOW UI")) {
-		//ToggleFullscreen(); //dwm zna da se ukenja
-		ui->show_ui = !ui->show_ui;
-	}
-}
+	GtkWidget* window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-void draw(AudioData *data, UserInterface *ui) {
-	InitWindow(1000, 900, "visualizer");
-	SetTargetFPS(360);
+	GtkWidget *header = gtk_header_bar_new();
+	gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header), TRUE);
+	gtk_header_bar_set_title(GTK_HEADER_BAR(header), "Directional Audio Visualizer");
+	gtk_window_set_titlebar(GTK_WINDOW(window), header);
 
-	GuiLoadStyleCyber();
-	//SetWindowOpacity(0.5); //bas sve bude transparentno
+	GtkWidget *menubar = gtk_menu_bar_new();
+	GtkWidget *file_menu_item = gtk_menu_item_new_with_label("Device");
+	refresh(NULL, data);
 
-	setup_ui(ui);
-	data->speed = 400;
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(file_menu_item), data->devices);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menubar), file_menu_item);
 
-	while(!WindowShouldClose()) {
-		BeginDrawing();
-		if(ui->show_ui) {
-			ClearBackground(GetColor(GuiGetStyle(DEFAULT, BACKGROUND_COLOR)));
-		}
-		else {
-			ClearBackground((Color){0, 1, 0, 0});
-		}
-		draw_widget(data, ui);
-		hide_ui(ui);
-		if(ui->show_ui) {
-			set_style(ui);
-			refresh_button(data, ui);
-			print_devices(data, ui);
-			widget_settings(data, ui);
-		}
-		EndDrawing();
-	}
+	gtk_header_bar_pack_start(GTK_HEADER_BAR(header), menubar);
+
+	data->start_stop = gtk_button_new_with_label("Start");
+	GtkWidget *button2 = gtk_button_new_with_label("Refresh");
+	g_signal_connect(G_OBJECT(data->start_stop), "clicked", G_CALLBACK(start_stop), data);
+	g_signal_connect(G_OBJECT(button2), "clicked", G_CALLBACK(refresh), data);
+
+	gtk_header_bar_pack_start(GTK_HEADER_BAR(header), data->start_stop);
+	gtk_header_bar_pack_start(GTK_HEADER_BAR(header), button2);
+
+	GtkWidget *grid = gtk_grid_new();
+	gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
+
+	GtkWidget *label1 = gtk_label_new("redius");
+	GtkWidget *radius = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
+	g_signal_connect(G_OBJECT(radius), "value-changed", G_CALLBACK(set_radius), data);
+	gtk_range_set_value(GTK_RANGE(radius), data->radius);
+
+	GtkWidget *space = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
+	g_signal_connect(G_OBJECT(space), "value-changed", G_CALLBACK(set_space), data);
+	gtk_range_set_value(GTK_RANGE(space), data->space);
+
+	GtkWidget *speed = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
+	g_signal_connect(G_OBJECT(speed), "value-changed", G_CALLBACK(set_speed), data);
+	gtk_range_set_value(GTK_RANGE(speed), data->stream->speed);
+
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Radius"), 0, 0, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), radius, 1, 0, 10, 1);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Distance"), 0, 1, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), space, 1, 1, 10, 1);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Speed"), 0, 2, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), speed, 1, 2, 10, 1);
+
+	gtk_container_add (GTK_CONTAINER (window), grid);
+
+	gtk_widget_show_all(window);
 }

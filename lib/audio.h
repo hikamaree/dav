@@ -18,10 +18,10 @@ typedef struct {
 	float speed;
 	int channel_cnt;
 	float *channels;
-} AudioData;
+} StreamData;
 
-void start_stream(AudioData *data);
-void refresh_devices(AudioData *data);
-void close_stream(AudioData *data);
+void start_stream(StreamData *data);
+void refresh_devices(StreamData *data);
+void close_stream(StreamData *data);
 
 #endif

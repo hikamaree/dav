@@ -3,13 +3,14 @@ LIB_DIR=lib
 BUILD_DIR=build
 BINARY=build/audio
 
-CXX=gcc#x86_64-w64-mingw32-gcc
+CXX=gcc
 GDB=gdb
 MKDIR=mkdir -p
 RM=rm -rf
 
-LDFLAGS=-lraylib -lm -lportaudio
-CXXFLAGS=-Wall -I $(LIB_DIR) -O3 -MD -MP
+GTKFLAGS=$(shell pkg-config --cflags --libs gtk+-3.0)
+LDFLAGS=-lraylib $(GTKFLAGS) -lm -lportaudio
+CXXFLAGS=-Wall -I $(LIB_DIR) $(GTKFLAGS) -O3 -MD -MP
 
 SOURCES=$(wildcard $(SRC_DIR)/*.c)
 OBJECTS=$(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
