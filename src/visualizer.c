@@ -47,6 +47,12 @@ void start_stop(GtkWidget *widget, gpointer d) {
 		gtk_window_set_position(GTK_WINDOW(data->visualizer), GTK_WIN_POS_CENTER);
 		gtk_window_set_default_size(GTK_WINDOW(data->visualizer), 1280, 720);
 		gtk_window_set_keep_above(GTK_WINDOW(data->visualizer), TRUE);
+		GdkScreen* screen = gdk_screen_get_default();
+		GdkVisual* visual = gdk_screen_get_rgba_visual(screen);
+
+		if (visual != NULL && gdk_screen_is_composited(screen)) {
+			gtk_widget_set_visual(data->visualizer, visual);
+		}
 
 		g_signal_connect(G_OBJECT(data->visualizer), "draw", G_CALLBACK(draw_visualizer), data);
 		g_signal_connect(G_OBJECT(data->visualizer), "delete-event", G_CALLBACK(on_visualizer_close), NULL);
