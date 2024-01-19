@@ -46,25 +46,26 @@ void refresh(GtkWidget *widget, gpointer d) {
 
 void set_radius(GtkWidget *widget, gpointer d) {
 	AppData* data = (AppData*)d;
-	data->radius = gtk_range_get_value(GTK_RANGE(widget));
+	data->settings->radius = gtk_range_get_value(GTK_RANGE(widget));
+	write_config(data->settings);
 }
 
 void set_space(GtkWidget *widget, gpointer d) {
 	AppData* data = (AppData*)d;
-	data->space = gtk_range_get_value(GTK_RANGE(widget));
+	data->settings->space = gtk_range_get_value(GTK_RANGE(widget));
+	write_config(data->settings);
 }
 
 void set_speed(GtkWidget *widget, gpointer d) {
 	AppData* data = (AppData*)d;
 	data->stream->speed = gtk_range_get_value(GTK_RANGE(widget));
+	data->settings->speed = gtk_range_get_value(GTK_RANGE(widget));
+	write_config(data->settings);
 }
 
 void create_window(AppData* data) {
 	data->visualizer = NULL;
-	data->devices = gtk_menu_new();
-	data->radius = 100;
-	data->space = 200;
-	data->stream->speed = 400;
+	data->stream->speed = data->settings->speed;
 
 	data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size(GTK_WINDOW(data->window), 600, 400);
@@ -77,6 +78,8 @@ void create_window(AppData* data) {
 
 	GtkWidget *menubar = gtk_menu_bar_new();
 	GtkWidget *file_menu_item = gtk_menu_item_new_with_label("Device");
+
+	data->devices = gtk_menu_new();
 	refresh(NULL, data);
 
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(file_menu_item), data->devices);
@@ -99,11 +102,11 @@ void create_window(AppData* data) {
 
 	GtkWidget *radius = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
 	g_signal_connect(G_OBJECT(radius), "value-changed", G_CALLBACK(set_radius), data);
-	gtk_range_set_value(GTK_RANGE(radius), data->radius);
+	gtk_range_set_value(GTK_RANGE(radius), data->settings->radius);
 
 	GtkWidget *space = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
 	g_signal_connect(G_OBJECT(space), "value-changed", G_CALLBACK(set_space), data);
-	gtk_range_set_value(GTK_RANGE(space), data->space);
+	gtk_range_set_value(GTK_RANGE(space), data->settings->space);
 
 	GtkWidget *speed = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
 	g_signal_connect(G_OBJECT(speed), "value-changed", G_CALLBACK(set_speed), data);

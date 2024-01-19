@@ -4,6 +4,7 @@
 #include <gtk/gtk.h>
 #include "audio.h"
 #include "visualizer.h"
+#include "config.h"
 
 typedef struct {
 	GtkWidget* visualizer;
@@ -14,8 +15,7 @@ typedef struct {
 	GtkWidget* start_stop;
 	GtkWidget* device_name;
 	StreamData* stream;
-	int radius;
-	int space;
+	Config* settings;
 } AppData;
 
 extern int device;

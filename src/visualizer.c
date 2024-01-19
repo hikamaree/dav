@@ -12,11 +12,11 @@ gboolean draw_visualizer(GtkWidget *widget, cairo_t *cr, gpointer d) {
 
 	cairo_set_source_rgba(cr, 1.0, 0.0, 0.0, 0.5);
 	for (int i = 0; i < data->stream->channel_cnt; i += 2) {
-		float x = data->space * cos(i * delta / 2);
-		float y = data->space * sin(i * delta / 2);
+		float x = data->settings->space * cos(i * delta / 2);
+		float y = data->settings->space * sin(i * delta / 2);
 
-		cairo_arc(cr, (float)width / 2 - x, (float)height / 2 - y, data->radius * data->stream->channels[i], 0, 2 * G_PI);
-		cairo_arc(cr, (float)width / 2 + x, (float)height / 2 + y, data->radius * data->stream->channels[i + 1], 0, 2 * G_PI);
+		cairo_arc(cr, (float)width / 2 - x, (float)height / 2 - y, data->settings->radius * data->stream->channels[i], 0, 2 * G_PI);
+		cairo_arc(cr, (float)width / 2 + x, (float)height / 2 + y, data->settings->radius * data->stream->channels[i + 1], 0, 2 * G_PI);
 		cairo_fill(cr);
 	}
 	gtk_widget_queue_draw((GtkWidget*)widget);
@@ -65,5 +65,3 @@ void start_stop(GtkWidget *widget, gpointer d) {
 		close_stream(data->stream);
 	}
 }
-
-

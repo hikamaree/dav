@@ -1,7 +1,7 @@
 SRC_DIR=src
 LIB_DIR=lib
 BUILD_DIR=build
-BINARY=build/audio
+BINARY=build/dav
 
 CXX=gcc
 GDB=gdb
