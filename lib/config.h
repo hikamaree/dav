@@ -3,12 +3,15 @@
 #include <string.h>
 
 typedef struct {
-	const char *path;
-    int radius;
-    int space;
-    int speed;
+	char *path;
+	int radius;
+	int space;
+	int speed;
+	double red;
+	double green;
+	double blue;
+	double alpha;
 } Config;
 
-char* get_config_path();
-void read_config(Config *config);
+Config* read_config();
 void write_config(const Config *config);

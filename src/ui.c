@@ -26,7 +26,6 @@ void refresh(GtkWidget *widget, gpointer d) {
 	for (GList *iter = children; iter != NULL; iter = g_list_next(iter)) {
 		GtkWidget *menuItem = GTK_WIDGET(iter->data);
 		gtk_container_remove(GTK_CONTAINER(data->devices), menuItem);
-		g_object_unref(menuItem);
 	}
 	g_list_free(children);
 
@@ -44,23 +43,61 @@ void refresh(GtkWidget *widget, gpointer d) {
 	device = -1;
 }
 
-void set_radius(GtkWidget *widget, gpointer d) {
+void set_radius(GtkWidget* widget, gpointer d) {
 	AppData* data = (AppData*)d;
 	data->settings->radius = gtk_range_get_value(GTK_RANGE(widget));
 	write_config(data->settings);
 }
 
-void set_space(GtkWidget *widget, gpointer d) {
+void set_space(GtkWidget* widget, gpointer d) {
 	AppData* data = (AppData*)d;
 	data->settings->space = gtk_range_get_value(GTK_RANGE(widget));
 	write_config(data->settings);
 }
 
-void set_speed(GtkWidget *widget, gpointer d) {
+void set_speed(GtkWidget* widget, gpointer d) {
 	AppData* data = (AppData*)d;
 	data->stream->speed = gtk_range_get_value(GTK_RANGE(widget));
 	data->settings->speed = gtk_range_get_value(GTK_RANGE(widget));
 	write_config(data->settings);
+}
+
+void set_red(GtkWidget* widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	data->settings->red = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+	write_config(data->settings);
+}
+
+void set_green(GtkWidget* widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	data->settings->green = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+	write_config(data->settings);
+}
+
+void set_blue(GtkWidget* widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	data->settings->blue = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+	write_config(data->settings);
+}
+
+void set_alpha(GtkWidget* widget, gpointer d) {
+	AppData* data = (AppData*)d;
+	data->settings->alpha = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
+	write_config(data->settings);
+}
+
+void close_dav(GtkWidget *window, gpointer d) {
+	AppData* data = (AppData*)d;
+	if(data->visualizer != NULL) {
+		gtk_widget_destroy(data->visualizer);
+	}
+	close_stream(data->stream);
+
+	free(data->settings->path);
+	free(data->settings);
+	free(data->stream);
+	free(data);
+	gtk_main_quit();
 }
 
 void create_window(AppData* data) {
@@ -112,6 +149,22 @@ void create_window(AppData* data) {
 	g_signal_connect(G_OBJECT(speed), "value-changed", G_CALLBACK(set_speed), data);
 	gtk_range_set_value(GTK_RANGE(speed), data->stream->speed);
 
+	GtkWidget *red = gtk_spin_button_new_with_range(0, 1.0, 0.1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(red), data->settings->red);
+	g_signal_connect(red, "value-changed", G_CALLBACK(set_red), data);
+
+	GtkWidget *green = gtk_spin_button_new_with_range(0, 1.0, 0.1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(green), data->settings->green);
+	g_signal_connect(green, "value-changed", G_CALLBACK(set_green), data);
+
+	GtkWidget *blue = gtk_spin_button_new_with_range(0, 1.0, 0.1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(blue), data->settings->blue);
+	g_signal_connect(blue, "value-changed", G_CALLBACK(set_blue), data);
+
+	GtkWidget *alpha = gtk_spin_button_new_with_range(0, 1.0, 0.1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(alpha), data->settings->alpha);
+	g_signal_connect(alpha, "value-changed", G_CALLBACK(set_alpha), data);
+
 	gtk_grid_attach(GTK_GRID(data->grid), data->device_name, 0, 0, 6, 1);
 	gtk_grid_attach(GTK_GRID(data->grid), gtk_label_new("Radius"), 0, 1, 1, 1);
 	gtk_grid_attach(GTK_GRID(data->grid), radius, 1, 1, 5, 1);
@@ -120,7 +173,17 @@ void create_window(AppData* data) {
 	gtk_grid_attach(GTK_GRID(data->grid), gtk_label_new("Speed"), 0, 3, 1, 1);
 	gtk_grid_attach(GTK_GRID(data->grid), speed, 1, 3, 5, 1);
 
-	gtk_container_add (GTK_CONTAINER (data->window), data->grid);
+	gtk_grid_attach(GTK_GRID(data->grid), gtk_label_new("\nColor\n"), 2, 5, 2, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), gtk_label_new("Red"), 1, 7, 1, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), red, 2, 7, 1, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), gtk_label_new("Green"), 3, 7, 1, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), green, 4, 7, 1, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), gtk_label_new("Blue"), 1, 8, 1, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), blue, 2, 8, 1, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), gtk_label_new("Alpha"), 3, 8, 1, 1);
+	gtk_grid_attach(GTK_GRID(data->grid), alpha, 4, 8, 1, 1);
 
+	gtk_container_add (GTK_CONTAINER (data->window), data->grid);
+	g_signal_connect(data->window, "destroy", G_CALLBACK(close_dav), data);
 	gtk_widget_show_all(data->window);
 }
