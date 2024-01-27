@@ -3,9 +3,9 @@
 #include <sys/stat.h>
 
 char* get_config_path() {
-	const char *xdgConfigHome = getenv("XDG_CONFIG_HOME");
+	const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
 	if (xdgConfigHome == NULL || strlen(xdgConfigHome) == 0) {
-		const char *homeDir = getenv("HOME");
+		const char* homeDir = getenv("HOME");
 		if (homeDir == NULL || strlen(homeDir) == 0) {
 			fprintf(stderr, "Error: HOME environment variable not set.\n");
 			exit(EXIT_FAILURE);
@@ -15,8 +15,8 @@ char* get_config_path() {
 	return strcat(strcpy(malloc(strlen(xdgConfigHome) + strlen("/dav/config") + 1), xdgConfigHome), "/dav/config");
 }
 
-void write_config(const Config *config) {
-	FILE *file = fopen(config->path, "w");
+void write_config(const Config* config) {
+	FILE* file = fopen(config->path, "w");
 	if (file == NULL) {
 		perror("Error opening file");
 		exit(EXIT_FAILURE);
@@ -38,7 +38,7 @@ void write_config(const Config *config) {
 }
 
 Config* read_config() {
-	Config *config = malloc(sizeof(Config));
+	Config* config = malloc(sizeof(Config));
 	*config = (Config){
 		.path = get_config_path(),
 		.radius = -1,
@@ -71,7 +71,7 @@ Config* read_config() {
 		}
 	}
 
-	FILE *file = fopen(config->path, "r");
+	FILE* file = fopen(config->path, "r");
 
 	if (file == NULL) {
 		default_config.path = config->path;

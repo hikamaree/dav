@@ -13,15 +13,15 @@
 #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 
 typedef struct {
-	PaStream *stream;
+	PaStream* stream;
 	int device;
 	float speed;
 	int channel_cnt;
-	float *channels;
+	float* channels;
 } StreamData;
 
-void start_stream(StreamData *data);
-void refresh_devices(StreamData *data);
-void close_stream(StreamData *data);
+void start_stream(StreamData*);
+void refresh_stream(StreamData*);
+void close_stream(StreamData*);
 
 #endif

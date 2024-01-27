@@ -1,6 +1,6 @@
 #include "ui.h"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 	AppData* data = malloc (sizeof(AppData));
 	data->stream = malloc(sizeof(StreamData));
 	data->settings = read_config();

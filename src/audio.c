@@ -38,7 +38,7 @@ void start_stream(StreamData *data) {
 	Pa_StartStream(data->stream);
 }
 
-void refresh_devices(StreamData *data) {
+void refresh_stream(StreamData *data) {
 	close_stream(data);
 	Pa_Terminate();
 	Pa_Initialize();

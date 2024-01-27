@@ -1,3 +1,9 @@
-#include <gtk/gtk.h>
+#ifndef VISUALIZER_H
+#define VISUALIZER_H
 
-void start_stop(GtkWidget*, gpointer);
+#include "data.h"
+
+void open_overlay(AppData*);
+void close_overlay(AppData*);
+
+#endif
