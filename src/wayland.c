@@ -16,6 +16,20 @@ gboolean draw(GtkWidget* widget, cairo_t* cr, gpointer d) {
 		cairo_arc(cr, (float)width / 2 + x, (float)height / 2 + y, data->settings->radius * data->stream->channels[i + 1], 0, 2 * G_PI);
 		cairo_fill(cr);
 	}
+
+	float cx = (float)width / 2;
+	float cy = (float)height / 2;
+	float r = data->settings->space;
+
+	float angle = (data->stream->angle + 180) * (G_PI / 180.0f);
+
+	float sx = cx + cosf(angle) * r;
+	float sy = cy + sinf(angle) * r;
+
+	cairo_set_source_rgba(cr, 1.0, 0.1, 0.1, 0.8);
+	cairo_arc(cr, sx, sy, data->settings->radius * 1.2, 0, 2 * G_PI);
+	cairo_fill(cr);
+
 	gtk_widget_queue_draw((GtkWidget*)widget);
 	return FALSE;
 }

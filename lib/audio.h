@@ -18,6 +18,7 @@ typedef struct {
 	float speed;
 	int channel_cnt;
 	float* channels;
+	float angle;
 } StreamData;
 
 void start_stream(StreamData*);
