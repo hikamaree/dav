@@ -2,36 +2,44 @@
 #include <gtk-layer-shell.h>
 
 gboolean draw(GtkWidget* widget, cairo_t* cr, gpointer d) {
-	AppData* data = (AppData*)d;
+    AppData* data = (AppData*)d;
 
-	int width, height;
-	gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
-	float delta = 2 * G_PI / data->stream->channel_cnt;
+    int width, height;
+    gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
 
-	cairo_set_source_rgba(cr, data->settings->red, data->settings->green, data->settings->blue, data->settings->alpha);
-	for (int i = 0; i < data->stream->channel_cnt; i += 2) {
-		float x = data->settings->space * cos(i * delta / 2);
-		float y = data->settings->space * sin(i * delta / 2);
-		cairo_arc(cr, (float)width / 2 - x, (float)height / 2 - y, data->settings->radius * data->stream->channels[i], 0, 2 * G_PI);
-		cairo_arc(cr, (float)width / 2 + x, (float)height / 2 + y, data->settings->radius * data->stream->channels[i + 1], 0, 2 * G_PI);
-		cairo_fill(cr);
-	}
+    cairo_set_source_rgba(cr, data->settings->red, data->settings->green, data->settings->blue, data->settings->alpha);
 
-	float cx = (float)width / 2;
-	float cy = (float)height / 2;
-	float r = data->settings->space;
+    // float delta = 2 * G_PI / data->stream->channel_cnt;
+    // for (int i = 0; i < data->stream->channel_cnt; i += 2) {
+    //     float x = data->settings->space * cos(i * delta / 2);
+    //     float y = data->settings->space * sin(i * delta / 2);
+    //     cairo_arc(cr, (float)width / 2 - x, (float)height / 2 - y, data->settings->radius * data->stream->channels[i], 0, 2 * G_PI);
+    //     cairo_arc(cr, (float)width / 2 + x, (float)height / 2 + y, data->settings->radius * data->stream->channels[i + 1], 0, 2 * G_PI);
+    //     cairo_fill(cr);
+    // }
 
-	float angle = (data->stream->angle + 180) * (G_PI / 180.0f);
+    float cx = (float)width / 2;
+    float cy = (float)height / 2;
+    float r = data->settings->space;
 
-	float sx = cx + cosf(angle) * r;
-	float sy = cy + sinf(angle) * r;
+    float radius = 0.0f;
+    for (int i = 0; i < data->stream->channel_cnt; i++) {
+        radius += data->stream->channels[i];
+    }
+    radius /= data->stream->channel_cnt;
+    
+    radius *= data->settings->radius;
 
-	cairo_set_source_rgba(cr, 1.0, 0.1, 0.1, 0.8);
-	cairo_arc(cr, sx, sy, data->settings->radius * 1.2, 0, 2 * G_PI);
-	cairo_fill(cr);
+    float angle = (data->stream->angle + 180) * (G_PI / 180.0f);
 
-	gtk_widget_queue_draw((GtkWidget*)widget);
-	return FALSE;
+    float sx = cx + cosf(angle) * r;
+    float sy = cy + sinf(angle) * r;
+
+    cairo_arc(cr, sx, sy, radius, 0, 2 * G_PI);
+    cairo_fill(cr);
+
+    gtk_widget_queue_draw((GtkWidget*)widget);
+    return FALSE;
 }
 
 void open_wayland_overlay(AppData* data) {
