@@ -1,4 +1,5 @@
 #include "audio.h"
+#include <math.h>
 
 int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo* timeInfo, PaStreamCallbackFlags statusFlags, void* userData) {
     StreamData* data = (StreamData*)userData;

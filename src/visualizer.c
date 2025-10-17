@@ -1,6 +1,11 @@
 #include "visualizer.h"
-#include "wayland.h"
-#include "x11.h"
+
+#if defined(__linux__)
+  #include "wayland.h"
+  #include "x11.h"
+#elif defined(WIN32) || defined(_WIN32)
+  #include "win32_overlay.h"
+#endif
 
 int device = -1;
 
@@ -10,7 +15,6 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
     int width, height;
     gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
 
-    // Clear with transparent background
     cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
     cairo_paint(cr);
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
@@ -52,8 +56,8 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
 }
 
 void open_overlay(AppData* data) {
-#if defined(WIN32) || defined(WIN64)
-	return;
+#if defined(WIN32) || defined(_WIN32)
+	open_win32_overlay(data);
 #elif defined(__linux__)
 	if (getenv("WAYLAND_DISPLAY")) {
 		open_wayland_overlay(data);
@@ -64,8 +68,8 @@ void open_overlay(AppData* data) {
 }
 
 void close_overlay(AppData* data) {
-#if defined(WIN32) || defined(WIN64)
-	return;
+#if defined(WIN32) || defined(_WIN32)
+	close_win32_overlay(data);
 #elif defined(__linux__)
 	if (getenv("WAYLAND_DISPLAY")) {
 		close_wayland_overlay(data);
