@@ -1,0 +1,60 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    defaults:
+      run:
+        shell: msys2 {0}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: UCRT64
+        update: true
+        install: >-
+          git
+          make
+          mingw-w64-ucrt-x86_64-gcc
+          mingw-w64-ucrt-x86_64-gtk3
+          mingw-w64-ucrt-x86_64-portaudio
+          msys2-runtime
+          pkgconf
+    
+    - name: Build project
+      run: make
+    
+    - name: Prepare artifact directory
+      run: |
+        mkdir -p artifact
+        cp build/dav.exe artifact/
+    
+    - name: Copy DLL dependencies
+      shell: pwsh
+      run: |
+        # Create artifact directory if it doesn't exist
+        if (-not (Test-Path artifact)) {
+          New-Item -ItemType Directory -Path artifact
+        }
+        
+        # Copy all DLLs from ucrt64/bin
+        Copy-Item C:\msys64\ucrt64\bin\*.dll artifact\
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dav-windows-build
+        path: artifact/
+        if-no-files-found: error
