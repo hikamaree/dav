@@ -5,9 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(__linux__)
-#include <pthread.h>
-#endif
 #include <portaudio.h>
 
 #define FRAMES_PER_BUFFER 256

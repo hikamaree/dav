@@ -22,7 +22,7 @@ ifeq ($(OS),Windows_NT)
   GTK_LIBS=-L/ucrt64/lib -lgtk-3 -lgdk-3 -lgdi32 -limm32 -lshell32 -lole32 -lwinmm -lpangocairo-1.0 -lpango-1.0 -lharfbuzz -latk-1.0 -lcairo-gobject -lcairo -lgdk_pixbuf-2.0 -lgio-2.0 -lgobject-2.0 -lglib-2.0
 else
   GTK_CFLAGS=$(shell pkg-config --cflags gtk+-3.0 gtk-layer-shell-0)
-  GTK_LIBS=$(shell pkg-config --libs gtk+-3.0 gtk-layer-shell-0)
+  GTK_LIBS=$(shell pkg-config --libs gtk+-3.0 gtk-layer-shell-0) -lm -lportaudio
 endif
 
 LDFLAGS=$(GTK_LIBS) $(PLATFORM_LDFLAGS)
