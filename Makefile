@@ -9,7 +9,7 @@ MKDIR=mkdir -p
 RM=rm -rf
 
 GTKFLAGS=$(shell pkg-config --cflags --libs gtk+-3.0 gtk-layer-shell-0)
-LDFLAGS=$(GTKFLAGS) -lm -lportaudio -lwayland-client
+LDFLAGS=$(GTKFLAGS) -lm -lportaudio -lwayland-client -lX11 -lXfixes
 CXXFLAGS=-Wall -I $(LIB_DIR) $(GTKFLAGS) -O3 -MD -MP
 
 SOURCES=$(wildcard $(SRC_DIR)/*.c)

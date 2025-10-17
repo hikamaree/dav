@@ -4,6 +4,53 @@
 
 int device = -1;
 
+gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
+    AppData* data = (AppData*)d;
+
+    int width, height;
+    gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
+
+    // Clear with transparent background
+    cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(cr);
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+    cairo_set_source_rgba(cr, data->settings->red, data->settings->green, data->settings->blue, data->settings->alpha);
+
+    float cx = (float)width / 2;
+    float cy = (float)height / 2;
+    float r = data->settings->space;
+
+    float radius = 0.0f;
+    for (int i = 0; i < data->stream->channel_cnt; i++) {
+        radius += data->stream->channels[i];
+    }
+    radius /= data->stream->channel_cnt;
+
+	if(radius > 0.01 && radius <= 0.2) {
+		radius *= 4;
+	}
+	else if(radius > 0.2 && radius < 0.5) {
+		radius *= 1.75;
+	}
+	else if(radius > 0.5) {
+		radius *= 1;
+	}
+
+    radius *= data->settings->radius;
+
+    float angle = (data->stream->angle + 180) * (G_PI / 180.0f);
+
+    float sx = cx + cosf(angle) * r;
+    float sy = cy + sinf(angle) * r;
+
+    cairo_arc(cr, sx, sy, radius, 0, 2 * G_PI);
+    cairo_fill(cr);
+
+    gtk_widget_queue_draw((GtkWidget*)widget);
+    return FALSE;
+}
+
 void open_overlay(AppData* data) {
 #if defined(WIN32) || defined(WIN64)
 	return;

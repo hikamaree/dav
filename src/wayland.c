@@ -1,52 +1,11 @@
 #include "wayland.h"
+#include "visualizer.h"
 #include <gtk-layer-shell.h>
-
-gboolean draw(GtkWidget* widget, cairo_t* cr, gpointer d) {
-    AppData* data = (AppData*)d;
-
-    int width, height;
-    gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
-
-    cairo_set_source_rgba(cr, data->settings->red, data->settings->green, data->settings->blue, data->settings->alpha);
-
-    float cx = (float)width / 2;
-    float cy = (float)height / 2;
-    float r = data->settings->space;
-
-    float radius = 0.0f;
-    for (int i = 0; i < data->stream->channel_cnt; i++) {
-        radius += data->stream->channels[i];
-    }
-    radius /= data->stream->channel_cnt;
-
-	if(radius > 0.01 && radius <= 0.2) {
-		radius *= 4;
-	}
-	else if(radius > 0.2 && radius < 0.5) {
-		radius *= 1.75;
-	}
-	else if(radius > 0.5) {
-		radius *= 1;
-	}
-
-    radius *= data->settings->radius;
-
-    float angle = (data->stream->angle + 180) * (G_PI / 180.0f);
-
-    float sx = cx + cosf(angle) * r;
-    float sy = cy + sinf(angle) * r;
-
-    cairo_arc(cr, sx, sy, radius, 0, 2 * G_PI);
-    cairo_fill(cr);
-
-    gtk_widget_queue_draw((GtkWidget*)widget);
-    return FALSE;
-}
 
 void open_wayland_overlay(AppData* data) {
 	data->visualizer = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_widget_set_app_paintable(data->visualizer, TRUE);
-	g_signal_connect(G_OBJECT(data->visualizer), "draw", G_CALLBACK(draw), data);
+	g_signal_connect(G_OBJECT(data->visualizer), "draw", G_CALLBACK(draw_overlay), data);
 
 	gtk_layer_init_for_window(GTK_WINDOW(data->visualizer));
 	gtk_widget_input_shape_combine_region (data->visualizer, data->input_region);
