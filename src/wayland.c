@@ -9,15 +9,6 @@ gboolean draw(GtkWidget* widget, cairo_t* cr, gpointer d) {
 
     cairo_set_source_rgba(cr, data->settings->red, data->settings->green, data->settings->blue, data->settings->alpha);
 
-    // float delta = 2 * G_PI / data->stream->channel_cnt;
-    // for (int i = 0; i < data->stream->channel_cnt; i += 2) {
-    //     float x = data->settings->space * cos(i * delta / 2);
-    //     float y = data->settings->space * sin(i * delta / 2);
-    //     cairo_arc(cr, (float)width / 2 - x, (float)height / 2 - y, data->settings->radius * data->stream->channels[i], 0, 2 * G_PI);
-    //     cairo_arc(cr, (float)width / 2 + x, (float)height / 2 + y, data->settings->radius * data->stream->channels[i + 1], 0, 2 * G_PI);
-    //     cairo_fill(cr);
-    // }
-
     float cx = (float)width / 2;
     float cy = (float)height / 2;
     float r = data->settings->space;
@@ -27,7 +18,17 @@ gboolean draw(GtkWidget* widget, cairo_t* cr, gpointer d) {
         radius += data->stream->channels[i];
     }
     radius /= data->stream->channel_cnt;
-    
+
+	if(radius > 0.01 && radius <= 0.2) {
+		radius *= 4;
+	}
+	else if(radius > 0.2 && radius < 0.5) {
+		radius *= 1.75;
+	}
+	else if(radius > 0.5) {
+		radius *= 1;
+	}
+
     radius *= data->settings->radius;
 
     float angle = (data->stream->angle + 180) * (G_PI / 180.0f);

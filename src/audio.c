@@ -41,7 +41,7 @@ int patestCallback(const void* inputBuffer, void* outputBuffer, unsigned long fr
         
         target_angle = fmaxf(fminf(target_angle, 180.0f), 0.0f);
         
-        float smoothing = data->speed / 2000;
+        float smoothing = data->speed / 10000;
         data->angle = data->angle * (1.0f - smoothing) + target_angle * smoothing;
     }
 
