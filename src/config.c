@@ -3,6 +3,14 @@
 #include <sys/stat.h>
 
 char* get_config_path() {
+#ifdef _WIN32
+	const char* appData = getenv("APPDATA");
+	if (appData == NULL || strlen(appData) == 0) {
+		fprintf(stderr, "Error: APPDATA environment variable not set.\n");
+		exit(EXIT_FAILURE);
+	}
+	return strcat(strcpy(malloc(strlen(appData) + strlen("\\dav\\config") + 1), appData), "\\dav\\config");
+#else
 	const char* xdgConfigHome = getenv("XDG_CONFIG_HOME");
 	if (xdgConfigHome == NULL || strlen(xdgConfigHome) == 0) {
 		const char* homeDir = getenv("HOME");
@@ -13,6 +21,7 @@ char* get_config_path() {
 		return strcat(strcpy(malloc(strlen(homeDir) + strlen("/.config/dav/config") + 1), homeDir), "/.config/dav/config");
 	}
 	return strcat(strcpy(malloc(strlen(xdgConfigHome) + strlen("/dav/config") + 1), xdgConfigHome), "/dav/config");
+#endif
 }
 
 void write_config(const Config* config) {
@@ -62,10 +71,18 @@ Config* read_config() {
 	};
 
 	char* config_dir = strdup(config->path);
+#ifdef _WIN32
+	config_dir[strlen(config_dir) - strlen("\\config")] = '\0';
+#else
 	config_dir[strlen(config_dir) - strlen("/config")] = '\0';
+#endif
 	struct stat st = {0};
 	if (stat(config_dir, &st) == -1) {
+#ifdef _WIN32
+		if (mkdir(config_dir) == -1) {
+#else
 		if (mkdir(config_dir, 0700) == -1) {
+#endif
 			perror("Error creating config directory");
 			exit(EXIT_FAILURE);
 		}
