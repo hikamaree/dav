@@ -36,21 +36,11 @@ jobs:
     - name: Build project
       run: make
     
-    - name: Prepare artifact directory
+    - name: Create artifact
       run: |
         mkdir -p artifact
         cp build/dav.exe artifact/
-    
-    - name: Copy DLL dependencies
-      shell: pwsh
-      run: |
-        # Create artifact directory if it doesn't exist
-        if (-not (Test-Path artifact)) {
-          New-Item -ItemType Directory -Path artifact
-        }
-        
-        # Copy all DLLs from ucrt64/bin
-        Copy-Item C:\msys64\ucrt64\bin\*.dll artifact\
+        cp /ucrt64/bin/*.dll artifact/
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
