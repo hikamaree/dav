@@ -30,17 +30,7 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
         radius += data->stream->channels[i];
     }
     radius /= data->stream->channel_cnt;
-
-	if(radius > 0.01 && radius <= 0.2) {
-		radius *= 4;
-	}
-	else if(radius > 0.2 && radius < 0.5) {
-		radius *= 1.75;
-	}
-	else if(radius > 0.5) {
-		radius *= 1;
-	}
-
+	radius = sqrtf(radius);
     radius *= data->settings->radius;
 
     float angle = (data->stream->angle + 180) * (G_PI / 180.0f);
