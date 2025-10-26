@@ -47,13 +47,6 @@ void write_config(const Config* config) {
 	fprintf(file, "blue = %lf\n\n", config->blue);
 	fprintf(file, "alpha = %lf\n\n", config->alpha);
 
-	fprintf(file, "# GIF Settings\n");
-	fprintf(file, "gif_path = %s\n\n", config->gif_path);
-	fprintf(file, "gif_x = %d\n\n", config->gif_x);
-	fprintf(file, "gif_y = %d\n\n", config->gif_y);
-	fprintf(file, "gif_width = %d\n\n", config->gif_width);
-	fprintf(file, "gif_height = %d\n\n", config->gif_height);
-
 	fclose(file);
 }
 
@@ -68,29 +61,17 @@ Config* read_config() {
 		.green = -1,
 		.blue = -1,
 		.alpha = -1,
-
-		.gif_path = NULL,
-		.gif_x = -1,
-		.gif_y = -1,
-		.gif_width = -1,
-		.gif_height = -1,
 	};
 
 	Config default_config = {
 		.path = NULL,
-		.radius = 100,
-		.space = 200,
-		.speed = 300,
+		.radius = 50,
+		.space = 500,
+		.speed = 200,
 		.red = 0.0,
 		.green = 1.0,
 		.blue = 1.0,
 		.alpha = 0.5,
-
-		.gif_path = "animation.gif",
-		.gif_x = 10,
-		.gif_y = 10,
-		.gif_width = 64,
-		.gif_height = 64,
 	};
 
 	char* config_dir = strdup(config->path);
@@ -116,20 +97,13 @@ Config* read_config() {
 	if (file == NULL) {
 		default_config.path = config->path;
 		*config = default_config;
-		config->gif_path = strdup(default_config.gif_path);
 	}
 	else {
 		char buffer[1000];
 		while (fgets(buffer, sizeof(buffer), file) != NULL) {
 			char key[1000];
 			double value;
-			char string_value[1000];
 
-			if (sscanf(buffer, "%s = %[^\n]", key, string_value) == 2) {
-				if (strcmp(key, "gif_path") == 0) {
-					config->gif_path = strdup(string_value);
-				}
-			}
 			if (sscanf(buffer, "%s = %lf", key, &value) == 2) {
 				if (strcmp(key, "radius") == 0) {
 					config->radius = value;
@@ -145,14 +119,6 @@ Config* read_config() {
 					config->blue = value;
 				} else if (strcmp(key, "alpha") == 0) {
 					config->alpha = value;
-				} else if (strcmp(key, "gif_x") == 0) {
-					config->gif_x = (int)value;
-				} else if (strcmp(key, "gif_y") == 0) {
-					config->gif_y = (int)value;
-				} else if (strcmp(key, "gif_width") == 0) {
-					config->gif_width = (int)value;
-				} else if (strcmp(key, "gif_height") == 0) {
-					config->gif_height = (int)value;
 				}
 			}
 		}
@@ -163,11 +129,6 @@ Config* read_config() {
 		if(config->green < 0) config->green = default_config.green;
 		if(config->blue < 0) config->blue = default_config.blue;
 		if(config->alpha < 0) config->alpha = default_config.alpha;
-		if(config->gif_x < 0) config->gif_x = default_config.gif_x;
-		if(config->gif_y < 0) config->gif_y = default_config.gif_y;
-		if(config->gif_width < 0) config->gif_width = default_config.gif_width;
-		if(config->gif_height < 0) config->gif_height = default_config.gif_height;
-		if(config->gif_path == NULL) config->gif_path = strdup(default_config.gif_path);
 
 		fclose(file);
 	}

@@ -1,4 +1,41 @@
 #include "ui.h"
+#include <stdbool.h>
+#include <stdio.h>
+
+Gif* gif_new(const char* path) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    Gif* g = malloc(sizeof(Gif));
+    if (!g) return NULL;
+    
+    g->path = strdup(path);
+    if (!g->path) {
+        free(g);
+        return NULL;
+    }
+    
+    g->gif_anim = gdk_pixbuf_animation_new_from_file(path, NULL);
+    if (!g->gif_anim) {
+        free(g->path);
+        free(g);
+        return NULL;
+    }
+    
+    g->gif_iter = gdk_pixbuf_animation_get_iter(g->gif_anim, NULL);
+    g->gif_x = 0;
+    g->gif_y = 0;
+    g->gif_width = gdk_pixbuf_animation_get_width(g->gif_anim);
+    g->gif_height = gdk_pixbuf_animation_get_height(g->gif_anim);
+    return g;
+#pragma GCC diagnostic pop
+}
+
+void gif_free(Gif* g) {
+	if (!g) return;
+	if (g->gif_anim) g_object_unref(g->gif_anim);
+	free(g->path);
+	free(g);
+}
 
 void show_notification(AppData* data, const char* message) {
 	GtkWidget* dialog = gtk_dialog_new_with_buttons("Custom Popup", GTK_WINDOW(data->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "OK", GTK_RESPONSE_OK, NULL);
@@ -7,6 +44,175 @@ void show_notification(AppData* data, const char* message) {
 	gtk_widget_show_all(dialog);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
+}
+
+void on_gif_tab_destroyed(GtkWidget* tab_content, gpointer user_data) {
+	AppData* data = (AppData*)user_data;
+	Gif* gif = g_object_get_data(G_OBJECT(tab_content), "gif_ptr");
+	if (gif) {
+		data->gifs = g_list_remove(data->gifs, gif);
+		gif_free(gif);
+	}
+}
+
+void set_gif_x(GtkSpinButton* spin, gpointer user_data) {
+	Gif* gif = (Gif*)user_data;
+	gif->gif_x = gtk_spin_button_get_value_as_int(spin);
+}
+
+void set_gif_y(GtkSpinButton* spin, gpointer user_data) {
+	Gif* gif = (Gif*)user_data;
+	gif->gif_y = gtk_spin_button_get_value_as_int(spin);
+}
+
+void set_gif_width(GtkSpinButton* spin, gpointer user_data) {
+	Gif* gif = (Gif*)user_data;
+	gif->gif_width = gtk_spin_button_get_value_as_int(spin);
+}
+
+void set_gif_height(GtkSpinButton* spin, gpointer user_data) {
+	Gif* gif = (Gif*)user_data;
+	gif->gif_height = gtk_spin_button_get_value_as_int(spin);
+}
+
+static void close_tab(GtkButton* button, gpointer user_data) {
+    GtkNotebook* notebook = GTK_NOTEBOOK(user_data);
+    AppData* data = g_object_get_data(G_OBJECT(notebook), "app_data");
+
+    int num_pages = gtk_notebook_get_n_pages(notebook);
+    for (int i = 0; i < num_pages; i++) {
+        GtkWidget* page = gtk_notebook_get_nth_page(notebook, i);
+        GtkWidget* tab_label = gtk_notebook_get_tab_label(notebook, page);
+
+        if (tab_label && gtk_widget_is_ancestor(GTK_WIDGET(button), tab_label)) {
+            gulong handler_id = g_signal_handler_find(button, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, close_tab, NULL);
+            if (handler_id > 0) {
+                g_signal_handler_disconnect(button, handler_id);
+            }
+
+            Gif* gif = g_object_get_data(G_OBJECT(page), "gif_ptr");
+            if (gif && data) {
+                data->gifs = g_list_remove(data->gifs, gif);
+                gif_free(gif);
+            }
+
+            gtk_notebook_remove_page(notebook, i);
+            break;
+        }
+    }
+}
+
+void add_gif_tab(AppData* data, const char* path) {
+	if (!data->notebook)
+		return;
+
+	Gif* gif = gif_new(path);
+
+	if (gif->gif_width > 512 || gif->gif_height > 512) {
+		char error_message[256];
+		snprintf(error_message, sizeof(error_message), 
+				"GIF je prevelik!\nDimenzije: %dx%d\nMaksimalne dozvoljene dimenzije: %dx%d", 
+				gif->gif_width, gif->gif_height, 512, 512);
+		
+		show_notification(data, error_message);
+		g_free(gif);
+		return;
+	}
+
+	data->gifs = g_list_append(data->gifs, gif);
+
+	GtkWidget* tab_content = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+	gtk_container_set_border_width(GTK_CONTAINER(tab_content), 10);
+
+	GtkWidget* controls_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_box_pack_start(GTK_BOX(tab_content), controls_container, FALSE, FALSE, 0);
+
+	GtkWidget* grid = gtk_grid_new();
+	gtk_grid_set_row_spacing(GTK_GRID(grid), 4);
+	gtk_grid_set_column_spacing(GTK_GRID(grid), 6);
+	gtk_box_pack_start(GTK_BOX(controls_container), grid, FALSE, FALSE, 0);
+
+	int row = 0;
+
+	GtkWidget* spin_x = gtk_spin_button_new_with_range(0, 5000, 1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_x), gif->gif_x);
+	g_signal_connect(spin_x, "value-changed", G_CALLBACK(set_gif_x), gif);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("X Position"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), spin_x, 1, row++, 1, 1);
+
+	GtkWidget* spin_y = gtk_spin_button_new_with_range(0, 5000, 1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_y), gif->gif_y);
+	g_signal_connect(spin_y, "value-changed", G_CALLBACK(set_gif_y), gif);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Y Position"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), spin_y, 1, row++, 1, 1);
+
+	GtkWidget* spin_w = gtk_spin_button_new_with_range(1, 1000, 1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_w), gif->gif_width);
+	g_signal_connect(spin_w, "value-changed", G_CALLBACK(set_gif_width), gif);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Width"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), spin_w, 1, row++, 1, 1);
+
+	GtkWidget* spin_h = gtk_spin_button_new_with_range(1, 1000, 1);
+	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_h), gif->gif_height);
+	g_signal_connect(spin_h, "value-changed", G_CALLBACK(set_gif_height), gif);
+	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Height"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(grid), spin_h, 1, row++, 1, 1);
+
+	GtkWidget* preview_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	gtk_box_pack_start(GTK_BOX(tab_content), preview_container, TRUE, TRUE, 0);
+	
+	GtkWidget* event_box = gtk_event_box_new();
+	gtk_widget_set_size_request(event_box, 400, 300);
+	gtk_widget_set_halign(event_box, GTK_ALIGN_CENTER);
+	gtk_widget_set_valign(event_box, GTK_ALIGN_CENTER);
+	gtk_box_pack_start(GTK_BOX(preview_container), event_box, TRUE, TRUE, 0);
+
+	GtkWidget* image = gtk_image_new_from_animation(gif->gif_anim);
+	gtk_container_add(GTK_CONTAINER(event_box), image);
+
+	GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+	GtkWidget* label = gtk_label_new(g_path_get_basename(path));
+	GtkWidget* close_btn = gtk_button_new_with_label("×");
+	gtk_button_set_relief(GTK_BUTTON(close_btn), GTK_RELIEF_NONE);
+	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(hbox), close_btn, FALSE, FALSE, 0);
+	gtk_widget_show_all(hbox);
+
+	gtk_widget_show_all(tab_content);
+	int page = gtk_notebook_append_page(GTK_NOTEBOOK(data->notebook), tab_content, hbox);
+	gtk_notebook_set_tab_reorderable(GTK_NOTEBOOK(data->notebook), tab_content, TRUE);
+
+	g_signal_connect(close_btn, "clicked", G_CALLBACK(close_tab), data->notebook);
+	g_object_set_data(G_OBJECT(tab_content), "gif_ptr", gif);
+	g_signal_connect(tab_content, "destroy", G_CALLBACK(on_gif_tab_destroyed), data);
+
+	gtk_widget_show_all(data->notebook);
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(data->notebook), page);
+}
+
+void on_add_gif_clicked(GtkWidget* widget, gpointer d) {
+    AppData* data = (AppData*)d;
+    GtkWidget* dialog = gtk_file_chooser_dialog_new("Select GIF File",
+        GTK_WINDOW(data->window),
+        GTK_FILE_CHOOSER_ACTION_OPEN,
+        "_Cancel", GTK_RESPONSE_CANCEL,
+        "_Open", GTK_RESPONSE_ACCEPT,
+        NULL);
+
+    if (!dialog) return;
+
+    GtkFileFilter* filter = gtk_file_filter_new();
+    gtk_file_filter_add_pattern(filter, "*.gif");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        if (filename) {
+            add_gif_tab(data, filename);
+            g_free(filename);
+        }
+    }
+    gtk_widget_destroy(dialog);
 }
 
 void select_device(GtkWidget* widget, gpointer d) {
@@ -29,68 +235,68 @@ void select_device(GtkWidget* widget, gpointer d) {
 
 void start_stop(GtkWidget* widget, gpointer d) {
 	AppData* data = (AppData*)d;
-	if (data->visualizer == NULL) {
+	if (data->visualizer == false) {
 		if(device < 0 || device > Pa_GetDeviceCount()) {
 			show_notification(data, "\tSelect valid source\t");
 			return;
 		}
+		data->visualizer = true;
 		data->stream->device = device;
 		start_stream(data->stream);
 		gtk_label_set_text(GTK_LABEL(data->device_name), Pa_GetDeviceInfo(device)->name);
 		gtk_button_set_label(GTK_BUTTON(data->start_stop), "Stop");
-		open_overlay(data);
 	}
 	else {
 		gtk_button_set_label(GTK_BUTTON(data->start_stop), "Start");
-		close_overlay(data);
 		close_stream(data->stream);
+		data->visualizer = false;
 	}
 }
 
 void refresh(GtkWidget* widget, gpointer d) {
-	AppData* data = (AppData*)d;
-	if(data->visualizer != NULL) {
-		start_stop(NULL, data);
-	}
+    AppData* data = (AppData*)d;
+    if(data->visualizer) {
+        start_stop(NULL, data);
+    }
 
-	refresh_stream(data->stream);
+    refresh_stream(data->stream);
 
-	if (GTK_IS_COMBO_BOX_TEXT(data->devices)) {
-		gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(data->devices));
-		int cnt = Pa_GetDeviceCount();
-		const PaDeviceInfo* device_info;
-		for (int dev = 0; dev < cnt; dev++) {
-			device_info = Pa_GetDeviceInfo(dev);
-			if (device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
-				char idbuf[32];
-				snprintf(idbuf, sizeof(idbuf), "%d", dev);
-				gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(data->devices), idbuf, device_info->name);
-			}
-		}
-		gtk_combo_box_set_active(GTK_COMBO_BOX(data->devices), -1);
-		device = -1;
-		return;
-	}
+    if (GTK_IS_COMBO_BOX_TEXT(data->devices)) {
+        gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(data->devices));
+        int cnt = Pa_GetDeviceCount();
+        const PaDeviceInfo* device_info;
+        for (int dev = 0; dev < cnt; dev++) {
+            device_info = Pa_GetDeviceInfo(dev);
+            if (device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
+                char idbuf[32];
+                snprintf(idbuf, sizeof(idbuf), "%d", dev);
+                gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(data->devices), idbuf, device_info->name);
+            }
+        }
+        gtk_combo_box_set_active(GTK_COMBO_BOX(data->devices), -1);
+        device = -1;
+        return;
+    }
 
-	GList* children = gtk_container_get_children(GTK_CONTAINER(data->devices));
-	for (GList* iter = children; iter != NULL; iter = g_list_next(iter)) {
-		GtkWidget* menuItem = GTK_WIDGET(iter->data);
-		gtk_container_remove(GTK_CONTAINER(data->devices), menuItem);
-	}
-	g_list_free(children);
+    GList* children = gtk_container_get_children(GTK_CONTAINER(data->devices));
+    for (GList* iter = children; iter != NULL; iter = g_list_next(iter)) {
+        GtkWidget* menuItem = GTK_WIDGET(iter->data);
+        gtk_widget_destroy(menuItem);
+    }
+    g_list_free(children);
 
-	int cnt = Pa_GetDeviceCount();
-	const PaDeviceInfo* device_info;
-	for (int device = 0; device < cnt; device++) {
-		device_info = Pa_GetDeviceInfo(device);
-		if(device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
-			GtkWidget* menuItem = gtk_menu_item_new_with_label(device_info->name);
-			g_signal_connect(G_OBJECT(menuItem), "activate", G_CALLBACK(select_device), GINT_TO_POINTER(device));
-			gtk_menu_shell_append(GTK_MENU_SHELL(data->devices), menuItem);
-			gtk_widget_show(menuItem);
-		}
-	}
-	device = -1;
+    int cnt = Pa_GetDeviceCount();
+    const PaDeviceInfo* device_info;
+    for (int device = 0; device < cnt; device++) {
+        device_info = Pa_GetDeviceInfo(device);
+        if(device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
+            GtkWidget* menuItem = gtk_menu_item_new_with_label(device_info->name);
+            g_signal_connect(G_OBJECT(menuItem), "activate", G_CALLBACK(select_device), GINT_TO_POINTER(device));
+            gtk_menu_shell_append(GTK_MENU_SHELL(data->devices), menuItem);
+            gtk_widget_show(menuItem);
+        }
+    }
+    device = -1;
 }
 
 void set_radius(GtkWidget* widget, gpointer d) {
@@ -137,114 +343,101 @@ void set_alpha(GtkWidget* widget, gpointer d) {
 }
 
 void close_dav(GtkWidget* window, gpointer d) {
-	AppData* data = (AppData*)d;
-	if(data->visualizer != NULL) {
-		gtk_widget_destroy(data->visualizer);
-	}
-	close_stream(data->stream);
-
-	free(data->input_region);
-	free(data->settings->path);
-	free(data->settings);
-	free(data->stream);
-	free(data);
-	gtk_main_quit();
-}
-
-void set_gif_path(GtkWidget* widget, gpointer d) {
-	AppData* data = (AppData*)d;
-
-	GtkWidget *dialog = gtk_file_chooser_dialog_new("Select GIF File",
-													GTK_WINDOW(data->window),
-													GTK_FILE_CHOOSER_ACTION_OPEN,
-													"_Cancel", GTK_RESPONSE_CANCEL,
-													"_Open", GTK_RESPONSE_ACCEPT,
-													NULL);
-
-	GtkFileFilter *filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(filter, "GIF Images");
-	gtk_file_filter_add_pattern(filter, "*.gif");
-	gtk_file_filter_add_pattern(filter, "*.GIF");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
-
-	GtkFileFilter *all_filter = gtk_file_filter_new();
-	gtk_file_filter_set_name(all_filter, "All Files");
-	gtk_file_filter_add_pattern(all_filter, "*");
-	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), all_filter);
-
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-		if (filename) {
-			if (data->settings->gif_path) {
-				free(data->settings->gif_path);
-			}
-			data->settings->gif_path = strdup(filename);
-			write_config(data->settings);
-			g_free(filename);
-
-			GtkWidget* gif_path_label = gtk_bin_get_child(GTK_BIN(widget));
-			if (GTK_IS_LABEL(gif_path_label)) {
-				char* basename = g_path_get_basename(data->settings->gif_path);
-				gtk_label_set_text(GTK_LABEL(gif_path_label), basename);
-				g_free(basename);
-			}
-		}
-	}
-
-	gtk_widget_destroy(dialog);
-}
-
-void set_gif_x(GtkWidget* widget, gpointer d) {
-	AppData* data = (AppData*)d;
-	data->settings->gif_x = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
-	write_config(data->settings);
-}
-
-void set_gif_y(GtkWidget* widget, gpointer d) {
-	AppData* data = (AppData*)d;
-	data->settings->gif_y = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
-	write_config(data->settings);
-}
-
-void set_gif_width(GtkWidget* widget, gpointer d) {
-	AppData* data = (AppData*)d;
-	data->settings->gif_width = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
-	write_config(data->settings);
-}
-
-void set_gif_height(GtkWidget* widget, gpointer d) {
-	AppData* data = (AppData*)d;
-	data->settings->gif_height = gtk_spin_button_get_value(GTK_SPIN_BUTTON(widget));
-	write_config(data->settings);
+    AppData* data = (AppData*)d;
+    
+    if (data->notebook) {
+        int num_pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(data->notebook));
+        for (int i = 0; i < num_pages; i++) {
+            GtkWidget* page = gtk_notebook_get_nth_page(GTK_NOTEBOOK(data->notebook), i);
+            if (page) {
+                gulong handler_id = g_signal_handler_find(page, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, on_gif_tab_destroyed, NULL);
+                if (handler_id > 0) {
+                    g_signal_handler_disconnect(page, handler_id);
+                }
+            }
+        }
+    }
+    
+    if (data->gifs) {
+        GList* iter = data->gifs;
+        while (iter) {
+            Gif* gif = (Gif*)iter->data;
+            if (gif) {
+                gif_free(gif);
+            }
+            iter = g_list_next(iter);
+        }
+        g_list_free(data->gifs);
+        data->gifs = NULL;
+    }
+    
+    if(data->overlay != NULL) {
+        gtk_widget_destroy(data->overlay);
+        data->overlay = NULL;
+    }
+    
+    close_stream(data->stream);
+    
+    if (data->input_region) {
+        cairo_region_destroy(data->input_region);
+        data->input_region = NULL;
+    }
+    
+    if (data->settings) {
+        free(data->settings->path);
+        data->settings->path = NULL;
+        free(data->settings);
+        data->settings = NULL;
+    }
+    
+    if (data->stream) {
+        free(data->stream);
+        data->stream = NULL;
+    }
+    
+    free(data);
+    gtk_main_quit();
 }
 
 void create_window(AppData* data) {
-	data->visualizer = NULL;
+	data->overlay = NULL;
 	data->input_region = cairo_region_create();
 	data->stream->speed = data->settings->speed;
 
 	data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_default_size(GTK_WINDOW(data->window), 600, 500);
-	g_signal_connect(G_OBJECT(data->window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+	g_signal_connect(G_OBJECT(data->window), "destroy", G_CALLBACK(close_dav), data);
 
 	data->header = gtk_header_bar_new();
 	gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(data->header), TRUE);
 	gtk_header_bar_set_title(GTK_HEADER_BAR(data->header), "Directional Audio Visualizer");
 	gtk_window_set_titlebar(GTK_WINDOW(data->window), data->header);
 
+	GtkWidget* add_gif_btn = gtk_button_new_with_label("+GIF");
+	gtk_header_bar_pack_end(GTK_HEADER_BAR(data->header), add_gif_btn);
+	g_signal_connect(add_gif_btn, "clicked", G_CALLBACK(on_add_gif_clicked), data);
+
 	GtkWidget* outer_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
 	gtk_container_set_border_width(GTK_CONTAINER(outer_box), 10);
 
+	data->notebook = gtk_notebook_new();
+	gtk_notebook_set_scrollable(GTK_NOTEBOOK(data->notebook), TRUE);
+	gtk_box_pack_start(GTK_BOX(outer_box), data->notebook, TRUE, TRUE, 0);
+
+	GtkWidget* settings_tab = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+	gtk_container_set_border_width(GTK_CONTAINER(settings_tab), 10);
+
 	data->device_name = gtk_label_new("");
 	gtk_widget_set_halign(data->device_name, GTK_ALIGN_CENTER);
-	gtk_box_pack_start(GTK_BOX(outer_box), data->device_name, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(settings_tab), data->device_name, FALSE, FALSE, 0);
 
 	GtkWidget* main_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-	data->grid = NULL;
 	gtk_container_set_border_width(GTK_CONTAINER(main_box), 10);
+	gtk_box_pack_start(GTK_BOX(settings_tab), main_box, TRUE, TRUE, 0);
 
 	GtkWidget* settings_frame = gtk_frame_new("Settings");
 	gtk_widget_set_hexpand(settings_frame, TRUE);
+	gtk_container_add(GTK_CONTAINER(main_box), settings_frame);
 
 	GtkWidget* settings_grid = gtk_grid_new();
 	gtk_grid_set_column_spacing(GTK_GRID(settings_grid), 8);
@@ -260,135 +453,67 @@ void create_window(AppData* data) {
 	gtk_widget_set_halign(controls_box, GTK_ALIGN_START);
 	gtk_widget_set_valign(controls_box, GTK_ALIGN_START);
 	gtk_widget_set_hexpand(controls_box, FALSE);
+	gtk_box_pack_start(GTK_BOX(main_box), controls_box, FALSE, FALSE, 6);
 
 	data->devices = gtk_combo_box_text_new();
-	gtk_widget_set_hexpand(data->devices, FALSE);
-	GtkCellRenderer *cell = gtk_cell_renderer_text_new();
-	gtk_cell_renderer_set_fixed_size(GTK_CELL_RENDERER(cell), 100, -1);
-	g_object_set(G_OBJECT(cell), "ellipsize", PANGO_ELLIPSIZE_END, NULL);
-	gtk_cell_layout_clear(GTK_CELL_LAYOUT(data->devices));
-	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(data->devices), cell, TRUE);
-	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(data->devices), cell, "text", 0, NULL);
 	g_signal_connect(G_OBJECT(data->devices), "changed", G_CALLBACK(select_device), data);
 	refresh(NULL, data);
-	gtk_widget_set_sensitive(data->devices, TRUE);
 
 	data->start_stop = gtk_button_new_with_label("Start");
 	GtkWidget* button2 = gtk_button_new_with_label("Refresh");
 	g_signal_connect(G_OBJECT(data->start_stop), "clicked", G_CALLBACK(start_stop), data);
 	g_signal_connect(G_OBJECT(button2), "clicked", G_CALLBACK(refresh), data);
 
-	gtk_widget_set_size_request(data->devices, 100, -1);
-	gtk_widget_set_size_request(controls_box, 100, -1);
-	g_object_set(G_OBJECT(data->devices), "width-chars", 10, NULL);
 	gtk_box_pack_start(GTK_BOX(controls_box), data->devices, FALSE, FALSE, 0);
-	gtk_box_pack_start(GTK_BOX(controls_box), data->start_stop, TRUE, FALSE, 6);
-	gtk_box_pack_start(GTK_BOX(controls_box), button2, TRUE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(controls_box), data->start_stop, FALSE, FALSE, 6);
+	gtk_box_pack_start(GTK_BOX(controls_box), button2, FALSE, FALSE, 0);
+
+	int row = 0;
 
 	GtkWidget* radius = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
-	g_signal_connect(G_OBJECT(radius), "value-changed", G_CALLBACK(set_radius), data);
 	gtk_range_set_value(GTK_RANGE(radius), data->settings->radius);
+	g_signal_connect(radius, "value-changed", G_CALLBACK(set_radius), data);
+	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Radius"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(settings_grid), radius, 1, row++, 1, 1);
 
 	GtkWidget* space = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
-	g_signal_connect(G_OBJECT(space), "value-changed", G_CALLBACK(set_space), data);
 	gtk_range_set_value(GTK_RANGE(space), data->settings->space);
+	g_signal_connect(space, "value-changed", G_CALLBACK(set_space), data);
+	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Distance"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(settings_grid), space, 1, row++, 1, 1);
 
 	GtkWidget* speed = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 1000, 1);
-	g_signal_connect(G_OBJECT(speed), "value-changed", G_CALLBACK(set_speed), data);
 	gtk_range_set_value(GTK_RANGE(speed), data->stream->speed);
+	g_signal_connect(speed, "value-changed", G_CALLBACK(set_speed), data);
+	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Speed"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(settings_grid), speed, 1, row++, 1, 1);
 
 	GtkWidget* red = gtk_spin_button_new_with_range(0, 1.0, 0.1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(red), data->settings->red);
 	g_signal_connect(red, "value-changed", G_CALLBACK(set_red), data);
+	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Red"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(settings_grid), red, 1, row++, 1, 1);
 
 	GtkWidget* green = gtk_spin_button_new_with_range(0, 1.0, 0.1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(green), data->settings->green);
 	g_signal_connect(green, "value-changed", G_CALLBACK(set_green), data);
+	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Green"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(settings_grid), green, 1, row++, 1, 1);
 
 	GtkWidget* blue = gtk_spin_button_new_with_range(0, 1.0, 0.1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(blue), data->settings->blue);
 	g_signal_connect(blue, "value-changed", G_CALLBACK(set_blue), data);
+	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Blue"), 0, row, 1, 1);
+	gtk_grid_attach(GTK_GRID(settings_grid), blue, 1, row++, 1, 1);
 
 	GtkWidget* alpha = gtk_spin_button_new_with_range(0, 1.0, 0.1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(alpha), data->settings->alpha);
 	g_signal_connect(alpha, "value-changed", G_CALLBACK(set_alpha), data);
-
-	GtkWidget* gif_path_button = gtk_button_new_with_label("Select GIF");
-	g_signal_connect(G_OBJECT(gif_path_button), "clicked", G_CALLBACK(set_gif_path), data);
-
-	char* current_gif_basename = g_path_get_basename(data->settings->gif_path);
-	g_free(current_gif_basename);
-
-	GtkWidget* gif_x = gtk_spin_button_new_with_range(0, 5000, 1);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(gif_x), data->settings->gif_x);
-	g_signal_connect(gif_x, "value-changed", G_CALLBACK(set_gif_x), data);
-
-	GtkWidget* gif_y = gtk_spin_button_new_with_range(0, 5000, 1);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(gif_y), data->settings->gif_y);
-	g_signal_connect(gif_y, "value-changed", G_CALLBACK(set_gif_y), data);
-
-	GtkWidget* gif_width = gtk_spin_button_new_with_range(1, 1000, 1);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(gif_width), data->settings->gif_width);
-	g_signal_connect(gif_width, "value-changed", G_CALLBACK(set_gif_width), data);
-
-	GtkWidget* gif_height = gtk_spin_button_new_with_range(1, 1000, 1);
-	gtk_spin_button_set_value(GTK_SPIN_BUTTON(gif_height), data->settings->gif_height);
-	g_signal_connect(gif_height, "value-changed", G_CALLBACK(set_gif_height), data);
-
-	int row = 0;
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Radius"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), radius, 1, row, 1, 1);
-	gtk_widget_set_hexpand(radius, TRUE);
-	row++;
-
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Distance"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), space, 1, row, 1, 1);
-	gtk_widget_set_hexpand(space, TRUE);
-	row++;
-
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Speed"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), speed, 1, row, 1, 1);
-	gtk_widget_set_hexpand(speed, TRUE);
-	row++;
-
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Red"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), red, 1, row, 1, 1);
-	row++;
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Green"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), green, 1, row, 1, 1);
-	row++;
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Blue"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), blue, 1, row, 1, 1);
-	row++;
 	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Alpha"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), alpha, 1, row, 1, 1);
-	row++;
+	gtk_grid_attach(GTK_GRID(settings_grid), alpha, 1, row++, 1, 1);
 
-	GtkWidget* separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-	gtk_grid_attach(GTK_GRID(settings_grid), separator, 0, row, 2, 1);
-	row++;
+	gtk_notebook_append_page(GTK_NOTEBOOK(data->notebook), settings_tab, gtk_label_new("Visualizer"));
 
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("GIF File"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), gif_path_button, 1, row, 1, 1);
-	row++;
-
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("GIF X Position"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), gif_x, 1, row, 1, 1);
-	row++;
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("GIF Y Position"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), gif_y, 1, row, 1, 1);
-	row++;
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("GIF Width"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), gif_width, 1, row, 1, 1);
-	row++;
-	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("GIF Height"), 0, row, 1, 1);
-	gtk_grid_attach(GTK_GRID(settings_grid), gif_height, 1, row, 1, 1);
-
-	gtk_box_pack_start(GTK_BOX(main_box), settings_frame, TRUE, TRUE, 0);
-	gtk_box_pack_start(GTK_BOX(main_box), controls_box, FALSE, FALSE, 6);
-
-	gtk_box_pack_start(GTK_BOX(outer_box), main_box, TRUE, TRUE, 0);
 	gtk_container_add(GTK_CONTAINER(data->window), outer_box);
-	g_signal_connect(data->window, "destroy", G_CALLBACK(close_dav), data);
 	gtk_widget_show_all(data->window);
 }

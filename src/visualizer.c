@@ -1,4 +1,5 @@
 #include "visualizer.h"
+#include "data.h"
 
 #if defined(__linux__)
   #include "wayland.h"
@@ -9,15 +10,13 @@
 
 int device = -1;
 
-gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
-    AppData* data = (AppData*)d;
+void draw_visualizer(GtkWidget* widget, cairo_t* cr, AppData* data) {
+	if(!data->visualizer) {
+		return;
+	}
 
     int width, height;
     gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
-
-    cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
-    cairo_paint(cr);
-    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
     cairo_set_source_rgba(cr, data->settings->red, data->settings->green, data->settings->blue, data->settings->alpha);
 
@@ -40,59 +39,59 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
 
     cairo_arc(cr, sx, sy, radius, 0, 2 * G_PI);
     cairo_fill(cr);
+}
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
-	if (data->gif_iter) {
-		GdkPixbuf* frame = gdk_pixbuf_animation_iter_get_pixbuf(data->gif_iter);
+void draw_gifs(GtkWidget* widget, cairo_t* cr, AppData* data) {
+	for (GList* l = data->gifs; l != NULL; l = l->next) {
+		Gif* gif = (Gif*)l->data;
+		if (!gif || !gif->gif_iter)
+			continue;
 
+		GdkPixbuf* frame = gdk_pixbuf_animation_iter_get_pixbuf(gif->gif_iter);
 		GdkPixbuf* scaled_frame = NULL;
-		if (data->settings->gif_width > 0 && data->settings->gif_height > 0) {
+
+		if (gif->gif_width > 0 && gif->gif_height > 0) {
 			scaled_frame = gdk_pixbuf_scale_simple(frame,
-												   data->settings->gif_width,
-												   data->settings->gif_height,
+												   gif->gif_width,
+												   gif->gif_height,
 												   GDK_INTERP_BILINEAR);
 		}
 
-		int gif_x = data->settings->gif_x;
-		int gif_y = data->settings->gif_y;
-
-		if (scaled_frame) {
-			gdk_cairo_set_source_pixbuf(cr, scaled_frame, gif_x, gif_y);
-			g_object_unref(scaled_frame);
-		} else {
-			gdk_cairo_set_source_pixbuf(cr, frame, gif_x, gif_y);
-		}
+		gdk_cairo_set_source_pixbuf(cr,
+			scaled_frame ? scaled_frame : frame,
+			gif->gif_x,
+			gif->gif_y);
 
 		cairo_paint(cr);
 
-		if (gdk_pixbuf_animation_iter_advance(data->gif_iter, NULL))
+		if (scaled_frame)
+			g_object_unref(scaled_frame);
+
+		if (gdk_pixbuf_animation_iter_advance(gif->gif_iter, NULL))
 			gtk_widget_queue_draw(widget);
 	}
+}
 
 #pragma GCC diagnostic pop
+
+gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
+    AppData* data = (AppData*)d;
+
+    cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(cr);
+    cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+
+	draw_gifs(widget, cr, data);
+	draw_visualizer(widget, cr, data);
 
 	gtk_widget_queue_draw((GtkWidget*)widget);
 	return FALSE;
 }
 
 void open_overlay(AppData* data) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-	GError* err = NULL;
-	data->gif_anim = gdk_pixbuf_animation_new_from_file(data->settings->gif_path, &err);
-	if (!data->gif_anim) {
-		g_warning("Failed to load %s: %s",data->settings->gif_path, err->message);
-		g_clear_error(&err);
-	} else {
-		data->gif_iter = gdk_pixbuf_animation_get_iter(data->gif_anim, NULL);
-	}
-
-#pragma GCC diagnostic pop
-
-
 #if defined(WIN32) || defined(_WIN32)
 	open_win32_overlay(data);
 #elif defined(__linux__)

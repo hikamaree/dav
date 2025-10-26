@@ -4,9 +4,10 @@
 #include <gtk/gtk.h>
 #include "audio.h"
 #include "config.h"
+#include <stdbool.h>
 
 typedef struct {
-	GtkWidget* visualizer;
+	GtkWidget* overlay;
 	cairo_region_t* input_region;
 	GtkWidget* window;
 	GtkWidget* header;
@@ -16,9 +17,21 @@ typedef struct {
 	GtkWidget* device_name;
 	StreamData* stream;
 	Config* settings;
+	bool visualizer;
+	GList* gifs;
+	GtkWidget* notebook;
+} AppData;
+
+typedef struct {
 	GdkPixbufAnimation* gif_anim;
 	GdkPixbufAnimationIter* gif_iter;
-} AppData;
+	char* path;
+
+	int gif_x;
+	int gif_y;
+	int gif_width;
+	int gif_height;
+} Gif;
 
 
 #endif
