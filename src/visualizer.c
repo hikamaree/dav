@@ -41,8 +41,40 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
     cairo_arc(cr, sx, sy, radius, 0, 2 * G_PI);
     cairo_fill(cr);
 
-    gtk_widget_queue_draw((GtkWidget*)widget);
-    return FALSE;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+	if (data->gif_iter) {
+		GdkPixbuf* frame = gdk_pixbuf_animation_iter_get_pixbuf(data->gif_iter);
+
+		GdkPixbuf* scaled_frame = NULL;
+		if (data->settings->gif_width > 0 && data->settings->gif_height > 0) {
+			scaled_frame = gdk_pixbuf_scale_simple(frame,
+												   data->settings->gif_width,
+												   data->settings->gif_height,
+												   GDK_INTERP_BILINEAR);
+		}
+
+		int gif_x = data->settings->gif_x;
+		int gif_y = data->settings->gif_y;
+
+		if (scaled_frame) {
+			gdk_cairo_set_source_pixbuf(cr, scaled_frame, gif_x, gif_y);
+			g_object_unref(scaled_frame);
+		} else {
+			gdk_cairo_set_source_pixbuf(cr, frame, gif_x, gif_y);
+		}
+
+		cairo_paint(cr);
+
+		if (gdk_pixbuf_animation_iter_advance(data->gif_iter, NULL))
+			gtk_widget_queue_draw(widget);
+	}
+
+#pragma GCC diagnostic pop
+
+	gtk_widget_queue_draw((GtkWidget*)widget);
+	return FALSE;
 }
 
 void open_overlay(AppData* data) {

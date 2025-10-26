@@ -1,10 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 typedef struct {
 	char* path;
 	int radius;
@@ -14,6 +10,12 @@ typedef struct {
 	double green;
 	double blue;
 	double alpha;
+
+    char* gif_path;
+    int gif_x;
+    int gif_y;
+    int gif_width;
+    int gif_height;
 } Config;
 
 Config* read_config();

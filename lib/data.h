@@ -16,6 +16,8 @@ typedef struct {
 	GtkWidget* device_name;
 	StreamData* stream;
 	Config* settings;
+	GdkPixbufAnimation* gif_anim;
+	GdkPixbufAnimationIter* gif_iter;
 } AppData;
 
 
