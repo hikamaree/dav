@@ -78,6 +78,21 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
 }
 
 void open_overlay(AppData* data) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
+	GError* err = NULL;
+	data->gif_anim = gdk_pixbuf_animation_new_from_file(data->settings->gif_path, &err);
+	if (!data->gif_anim) {
+		g_warning("Failed to load %s: %s",data->settings->gif_path, err->message);
+		g_clear_error(&err);
+	} else {
+		data->gif_iter = gdk_pixbuf_animation_get_iter(data->gif_anim, NULL);
+	}
+
+#pragma GCC diagnostic pop
+
+
 #if defined(WIN32) || defined(_WIN32)
 	open_win32_overlay(data);
 #elif defined(__linux__)
