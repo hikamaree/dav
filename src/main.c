@@ -9,6 +9,9 @@ int main(int argc, char* argv[]) {
 	data->gifs = NULL;
 
 	gtk_init(&argc, &argv);
+#if defined(WIN32) || defined(_WIN32)
+	g_setenv("GSETTINGS_SCHEMA_DIR", "schemas", FALSE);
+#endif
 	create_window(data);
 	open_overlay(data);
 	gtk_main();
