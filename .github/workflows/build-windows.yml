@@ -33,6 +33,7 @@ jobs:
           pkgconf
           mingw-w64-ucrt-x86_64-gsettings-desktop-schemas
           glib2
+          zip
     
     - name: Build project
       run: make
