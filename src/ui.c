@@ -134,25 +134,25 @@ void add_gif_tab(AppData* data, const char* path) {
 
 	int row = 0;
 
-	GtkWidget* spin_x = gtk_spin_button_new_with_range(0, 5000, 1);
+	GtkWidget* spin_x = gtk_spin_button_new_with_range(-5000, 5000, 1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_x), gif->gif_x);
 	g_signal_connect(spin_x, "value-changed", G_CALLBACK(set_gif_x), gif);
 	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("X Position"), 0, row, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), spin_x, 1, row++, 1, 1);
 
-	GtkWidget* spin_y = gtk_spin_button_new_with_range(0, 5000, 1);
+	GtkWidget* spin_y = gtk_spin_button_new_with_range(-5000, 5000, 1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_y), gif->gif_y);
 	g_signal_connect(spin_y, "value-changed", G_CALLBACK(set_gif_y), gif);
 	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Y Position"), 0, row, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), spin_y, 1, row++, 1, 1);
 
-	GtkWidget* spin_w = gtk_spin_button_new_with_range(1, 1000, 1);
+	GtkWidget* spin_w = gtk_spin_button_new_with_range(1, 5000, 1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_w), gif->gif_width);
 	g_signal_connect(spin_w, "value-changed", G_CALLBACK(set_gif_width), gif);
 	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Width"), 0, row, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), spin_w, 1, row++, 1, 1);
 
-	GtkWidget* spin_h = gtk_spin_button_new_with_range(1, 1000, 1);
+	GtkWidget* spin_h = gtk_spin_button_new_with_range(1, 5000, 1);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin_h), gif->gif_height);
 	g_signal_connect(spin_h, "value-changed", G_CALLBACK(set_gif_height), gif);
 	gtk_grid_attach(GTK_GRID(grid), gtk_label_new("Height"), 0, row, 1, 1);
