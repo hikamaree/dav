@@ -48,9 +48,25 @@ jobs:
         ldd ./build/dav.exe | grep home | awk '{print $1}' | xargs -I {} cp /ucrt64/bin/{} artifact/
         cp -r /ucrt64/share/glib-2.0/schemas artifact/
     
+    - name: Create zip archive
+      run: |
+        cd artifact
+        zip -r ../dav-windows.zip .
+        cd ..
+    
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: dav-windows-build
         path: artifact/
         if-no-files-found: error
+    
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dav-windows.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
