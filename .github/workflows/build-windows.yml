@@ -45,7 +45,7 @@ jobs:
       run: |
         mkdir -p artifact
         cp build/dav.exe artifact/
-        ldd ./build/dav.exe | grep home | awk '{print $1}' | xargs -I {} cp /ucrt64/bin/{} artifact/
+        ldd ./build/dav.exe | grep ucrt64 | awk '{print $1}' | xargs -I {} cp /ucrt64/bin/{} artifact/
         cp -r /ucrt64/share/glib-2.0/schemas artifact/
     
     - name: Create zip archive
