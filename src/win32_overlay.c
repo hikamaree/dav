@@ -4,6 +4,15 @@
 #ifdef _WIN32
 #include <gdk/gdkwin32.h>
 #include <windows.h>
+
+static gboolean fullscreen_overlay_win32(gpointer user_data) {
+    AppData* data = (AppData*)user_data;
+    if (data->overlay) {
+        HWND hwnd = GDK_WINDOW_HWND(gtk_widget_get_window(data->overlay));
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+    return TRUE;
+}
 #endif
 
 void open_win32_overlay(AppData* data) {
@@ -21,8 +30,9 @@ void open_win32_overlay(AppData* data) {
     
 #ifdef _WIN32
     HWND hwnd = GDK_WINDOW_HWND(gtk_widget_get_window(data->overlay));
-    SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED);
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    SetWindowLong(hwnd, GWL_EXSTYLE, WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_NOACTIVATE);
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    g_timeout_add(100, fullscreen_overlay_win32, data);
 #endif
 }
 
