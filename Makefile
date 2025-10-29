@@ -26,7 +26,7 @@ FLAGS = -Wall -I$(LIB) -O3 -MD -MP
 L_CFLAGS = $(FLAGS) -D__linux__ $(shell $(PKG) --cflags gtk+-3.0 gtk-layer-shell-0)
 W_CFLAGS = $(FLAGS) -DWIN32 -D_WIN32 $(shell $(MXE_PKG) --cflags gtk+-3.0)
 L_LDFLAGS = $(shell $(PKG) --libs gtk+-3.0 gtk-layer-shell-0) -lportaudio -lm -lwayland-client -lX11 -lXfixes
-W_LDFLAGS = $(shell $(MXE_PKG) --libs gtk+-3.0) -lportaudio -lm -lwinmm -lsetupapi -lole32
+W_LDFLAGS = -mwindows $(shell $(MXE_PKG) --libs gtk+-3.0) -lportaudio -lm -lwinmm -lsetupapi -lole32
 
 .PHONY: all windows run clean
 
