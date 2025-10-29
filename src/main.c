@@ -2,6 +2,8 @@
 #include "visualizer.h"
 #include <gio/gio.h>
 
+#include <libayatana-appindicator/app-indicator.h>
+
 #if defined(WIN32) || defined(_WIN32)
 extern GResource *resources_get_resource(void);
 
@@ -26,22 +28,42 @@ static void setup_bundled_schemas(void) {
 		g_bytes_unref(schema_bytes);
 	}
 }
+#else
+
+static void on_app_activate(GtkApplication *app, gpointer user_data) {
+	AppData *data = user_data;
+
+	if (!data->window) {
+		data->window = gtk_application_window_new(app);
+		create_window(data);
+		open_overlay(data);
+	} else {
+		gtk_window_present(GTK_WINDOW(data->window));
+	}
+}
 #endif
 
-int main(int argc, char* argv[]) {
-	AppData* data = calloc(1, sizeof(AppData));
+int main(int argc, char *argv[]) {
+	AppData *data = calloc(1, sizeof(AppData));
 	data->stream = calloc(1, sizeof(StreamData));
 	data->settings = read_config();
 	data->visualizer = false;
 	data->gifs = NULL;
 
-	gtk_init(&argc, &argv);
 #if defined(WIN32) || defined(_WIN32)
+	gtk_init(&argc, &argv);
 	setup_bundled_schemas();
-#endif
 	create_window(data);
 	open_overlay(data);
 	gtk_main();
+#else
+	GtkApplication *app = gtk_application_new("org.dav.visualizer", G_APPLICATION_FLAGS_NONE);
+	g_signal_connect(app, "activate", G_CALLBACK(on_app_activate), data);
+	int status = g_application_run(G_APPLICATION(app), argc, argv);
+	g_object_unref(app);
+	return status;
+#endif
 
 	return 0;
 }
+
