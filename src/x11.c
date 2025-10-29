@@ -6,7 +6,7 @@
 #include <X11/extensions/shape.h>
 #include <X11/extensions/Xfixes.h>
 
-static gboolean keep_above_timer(gpointer user_data) {
+static gboolean fullscreen_overlay_x11(gpointer user_data) {
     GtkWidget* widget = GTK_WIDGET(user_data);
 
     if (!widget || !gtk_widget_get_realized(widget)) {
@@ -88,12 +88,10 @@ void open_x11_overlay(AppData* data) {
     XRaiseWindow(display, window);
     XFlush(display);
 
-    g_timeout_add(100, keep_above_timer, data->overlay);
+    g_timeout_add(100, fullscreen_overlay_x11, data->overlay);
 }
 
 void close_x11_overlay(AppData* data) {
-    if (data->overlay) {
-        gtk_widget_destroy(data->overlay);
-        data->overlay = NULL;
-    }
+    gtk_widget_destroy(data->overlay);
+    data->overlay = NULL;
 }
