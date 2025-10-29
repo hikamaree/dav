@@ -1,0 +1,44 @@
+name: Build Windows Static (MXE)
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-static:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y autoconf automake autopoint bash bison bzip2 flex g++ gperf intltool libc6-dev-i386 libgdk-pixbuf2.0-dev libltdl-dev libgl-dev libpcre3-dev libssl-dev libtool-bin libxml-parser-perl lzip make openssl p7zip-full patch perl python3 python3-mako python3-pkg-resources ruby sed unzip wget xz-utils upx-ucl
+
+    - name: Build MXE
+      run: |
+        sudo mkdir -p /opt/mxe && sudo chown $USER /opt/mxe
+        cd /opt && git clone https://github.com/mxe/mxe.git
+        cd mxe && make MXE_TARGETS='x86_64-w64-mingw32.static' gtk3 portaudio -j$(nproc)
+
+    - name: Build project
+      run: |
+        sed -i 's|/home/user/mxe|/opt/mxe|g' Makefile
+        make windows
+        upx -9 build/win/dav.exe
+
+    - name: Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/dav.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
