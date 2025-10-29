@@ -3,6 +3,8 @@ name: Build MXE Docker Image
 on:
   workflow_dispatch:
   push:
+    tags-ignore:
+      - "**"
     paths:
       - 'Dockerfile.mxe'
       - '.github/workflows/build-mxe-image.yml'
