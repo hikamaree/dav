@@ -32,7 +32,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: build/dav.exe
+        files: build/win/dav.exe
         draft: false
         prerelease: false
       env:
