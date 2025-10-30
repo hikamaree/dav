@@ -1,2 +1,2 @@
-# Directional Audio Visualizer
+# Directional ~~Audio~~ Anime Visualizer
 
