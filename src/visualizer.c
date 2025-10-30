@@ -63,6 +63,7 @@ void draw_gifs(GtkWidget* widget, cairo_t* cr, AppData* data) {
 			gif->gif_x,
 			gif->gif_y);
 
+
 		cairo_paint(cr);
 
 		if (scaled_frame)

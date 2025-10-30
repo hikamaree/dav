@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include "gif.h"
 
+#if !defined(WIN32) && !defined(_WIN32)
 #include <libayatana-appindicator/app-indicator.h>
+#endif
 
 void show_notification(AppData* data, const char* message) {
 	GtkWidget* dialog = gtk_dialog_new_with_buttons("Custom Popup", GTK_WINDOW(data->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "OK", GTK_RESPONSE_OK, NULL);
