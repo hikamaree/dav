@@ -389,6 +389,8 @@ static void show_main_window(GtkMenuItem *item, AppData *data) {
 	}
 }
 
+#if defined(WIN32) || defined(_WIN32)
+#else
 static void setup_tray_icon(AppData *data) {
 	AppIndicator *indicator = app_indicator_new(
 		"visualizer-indicator",
@@ -429,6 +431,7 @@ static void setup_tray_icon(AppData *data) {
 	app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
 	app_indicator_set_menu(indicator, GTK_MENU(menu));
 }
+#endif
 
 static void on_load_gifs_clicked(GtkButton* button, AppData* data) {
 	GtkWidget* dialog = gtk_file_chooser_dialog_new(
