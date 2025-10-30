@@ -393,10 +393,29 @@ static void setup_tray_icon(AppData *data) {
 		APP_INDICATOR_CATEGORY_APPLICATION_STATUS
 		);
 
+	GdkPixbuf *pixbuf = gdk_pixbuf_new_from_resource("/app/icons/icon.png", NULL);
+	if (pixbuf) {
+		gchar *tmpfile = g_build_filename(g_get_tmp_dir(), "dav_icon.png", NULL);
+		gdk_pixbuf_save(pixbuf, tmpfile, "png", NULL, NULL);
+		app_indicator_set_icon_full(indicator, tmpfile, "App icon");
+		g_free(tmpfile);
+		g_object_unref(pixbuf);
+	}
+
 	GtkWidget *menu = gtk_menu_new();
-	GtkWidget *show_item = gtk_menu_item_new_with_label("Show Window");
+
+	GtkWidget *name_item = gtk_menu_item_new();
+	GtkWidget *name_label = gtk_label_new("DAV");
+	gtk_container_add(GTK_CONTAINER(name_item), name_label);
+	gtk_widget_set_sensitive(name_item, FALSE);
+
+	GtkWidget *separator = gtk_separator_menu_item_new();
+
+	GtkWidget *show_item = gtk_menu_item_new_with_label("Settings");
 	GtkWidget *quit_item = gtk_menu_item_new_with_label("Quit");
 
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), name_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), separator);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), show_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), quit_item);
 	gtk_widget_show_all(menu);

@@ -16,6 +16,11 @@ MXE_GRES = $(MXE)/usr/$(TGT)/bin/glib-compile-resources
 MXE_GSCH = $(MXE)/usr/$(TGT)/bin/glib-compile-schemas
 MXE_SCH = $(MXE)/usr/$(TGT)/share/glib-2.0/schemas
 
+L_GRES = glib-compile-resources
+L_RES_XML = icon.xml
+L_RES_C = $(BUILD)/lin/resources.c
+L_RES_O = $(BUILD)/lin/resources.o
+
 SRCS = $(wildcard $(SRC)/*.c)
 L_SRCS = $(filter-out $(SRC)/win32_overlay.c,$(SRCS))
 W_SRCS = $(filter-out $(SRC)/wayland.c $(SRC)/x11.c,$(SRCS))
@@ -32,7 +37,8 @@ W_LDFLAGS = -mwindows $(shell $(MXE_PKG) --libs gtk+-3.0) -lportaudio -lm -lwinm
 
 all: $(BUILD)/lin/dav
 
-$(BUILD)/lin/dav: $(L_OBJS)
+# linux
+$(BUILD)/lin/dav: $(L_OBJS) $(L_RES_O)
 	$(CC) $^ -o $@ $(L_LDFLAGS)
 
 $(BUILD)/lin/%.o: $(SRC)/%.c | $(BUILD)/lin
@@ -41,6 +47,13 @@ $(BUILD)/lin/%.o: $(SRC)/%.c | $(BUILD)/lin
 $(BUILD)/lin:
 	@$(MKDIR) $@
 
+$(L_RES_C): $(L_RES_XML) icon.png | $(BUILD)/lin
+	$(L_GRES) --target=$@ --generate-source --sourcedir=. $<
+
+$(L_RES_O): $(L_RES_C)
+	$(CC) $(L_CFLAGS) -c $< -o $@
+
+# windows
 windows: clean
 	@$(MAKE) --no-print-directory $(BUILD)/win/dav.exe
 
