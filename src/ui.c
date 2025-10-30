@@ -1,43 +1,9 @@
 #include "ui.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include "gif.h"
 
 #include <libayatana-appindicator/app-indicator.h>
-
-Gif* gif_new(const char* path) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    Gif* g = malloc(sizeof(Gif));
-    if (!g) return NULL;
-    
-    g->path = strdup(path);
-    if (!g->path) {
-        free(g);
-        return NULL;
-    }
-    
-    g->gif_anim = gdk_pixbuf_animation_new_from_file(path, NULL);
-    if (!g->gif_anim) {
-        free(g->path);
-        free(g);
-        return NULL;
-    }
-    
-    g->gif_iter = gdk_pixbuf_animation_get_iter(g->gif_anim, NULL);
-    g->gif_x = 0;
-    g->gif_y = 0;
-    g->gif_width = gdk_pixbuf_animation_get_width(g->gif_anim);
-    g->gif_height = gdk_pixbuf_animation_get_height(g->gif_anim);
-    return g;
-#pragma GCC diagnostic pop
-}
-
-void gif_free(Gif* g) {
-	if (!g) return;
-	if (g->gif_anim) g_object_unref(g->gif_anim);
-	free(g->path);
-	free(g);
-}
 
 void show_notification(AppData* data, const char* message) {
 	GtkWidget* dialog = gtk_dialog_new_with_buttons("Custom Popup", GTK_WINDOW(data->window), GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT, "OK", GTK_RESPONSE_OK, NULL);
@@ -78,50 +44,34 @@ void set_gif_height(GtkSpinButton* spin, gpointer user_data) {
 }
 
 static void close_tab(GtkButton* button, gpointer user_data) {
-    GtkNotebook* notebook = GTK_NOTEBOOK(user_data);
-    AppData* data = g_object_get_data(G_OBJECT(notebook), "app_data");
+	GtkNotebook* notebook = GTK_NOTEBOOK(user_data);
+	AppData* data = g_object_get_data(G_OBJECT(notebook), "app_data");
 
-    int num_pages = gtk_notebook_get_n_pages(notebook);
-    for (int i = 0; i < num_pages; i++) {
-        GtkWidget* page = gtk_notebook_get_nth_page(notebook, i);
-        GtkWidget* tab_label = gtk_notebook_get_tab_label(notebook, page);
+	int num_pages = gtk_notebook_get_n_pages(notebook);
+	for (int i = 0; i < num_pages; i++) {
+		GtkWidget* page = gtk_notebook_get_nth_page(notebook, i);
+		GtkWidget* tab_label = gtk_notebook_get_tab_label(notebook, page);
 
-        if (tab_label && gtk_widget_is_ancestor(GTK_WIDGET(button), tab_label)) {
-            gulong handler_id = g_signal_handler_find(button, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, close_tab, NULL);
-            if (handler_id > 0) {
-                g_signal_handler_disconnect(button, handler_id);
-            }
+		if (tab_label && gtk_widget_is_ancestor(GTK_WIDGET(button), tab_label)) {
+			gulong handler_id = g_signal_handler_find(button, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, close_tab, NULL);
+			if (handler_id > 0) {
+				g_signal_handler_disconnect(button, handler_id);
+			}
 
-            Gif* gif = g_object_get_data(G_OBJECT(page), "gif_ptr");
-            if (gif && data) {
-                data->gifs = g_list_remove(data->gifs, gif);
-                gif_free(gif);
-            }
+			Gif* gif = g_object_get_data(G_OBJECT(page), "gif_ptr");
+			if (gif && data) {
+				data->gifs = g_list_remove(data->gifs, gif);
+				gif_free(gif);
+			}
 
-            gtk_notebook_remove_page(notebook, i);
-            break;
-        }
-    }
+			gtk_notebook_remove_page(notebook, i);
+			break;
+		}
+	}
 }
 
-void add_gif_tab(AppData* data, const char* path) {
-	if (!data->notebook)
-		return;
-
-	Gif* gif = gif_new(path);
-
-	if (gif->gif_width > 512 || gif->gif_height > 512) {
-		char error_message[256];
-		snprintf(error_message, sizeof(error_message), 
-				"GIF je prevelik!\nDimenzije: %dx%d\nMaksimalne dozvoljene dimenzije: %dx%d", 
-				gif->gif_width, gif->gif_height, 512, 512);
-		
-		show_notification(data, error_message);
-		g_free(gif);
-		return;
-	}
-
-	data->gifs = g_list_append(data->gifs, gif);
+void open_gif_tab(AppData* data, void* g) {
+	Gif* gif = (Gif*)g;
 
 	GtkWidget* tab_content = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
 	gtk_container_set_border_width(GTK_CONTAINER(tab_content), 10);
@@ -162,7 +112,7 @@ void add_gif_tab(AppData* data, const char* path) {
 
 	GtkWidget* preview_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 	gtk_box_pack_start(GTK_BOX(tab_content), preview_container, TRUE, TRUE, 0);
-	
+
 	GtkWidget* event_box = gtk_event_box_new();
 	gtk_widget_set_size_request(event_box, 400, 300);
 	gtk_widget_set_halign(event_box, GTK_ALIGN_CENTER);
@@ -173,7 +123,7 @@ void add_gif_tab(AppData* data, const char* path) {
 	gtk_container_add(GTK_CONTAINER(event_box), image);
 
 	GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
-	GtkWidget* label = gtk_label_new(g_path_get_basename(path));
+	GtkWidget* label = gtk_label_new(g_path_get_basename(gif->path));
 	GtkWidget* close_btn = gtk_button_new_with_label("×");
 	gtk_button_set_relief(GTK_BUTTON(close_btn), GTK_RELIEF_NONE);
 	gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
@@ -192,29 +142,50 @@ void add_gif_tab(AppData* data, const char* path) {
 	gtk_notebook_set_current_page(GTK_NOTEBOOK(data->notebook), page);
 }
 
+void add_gif_tab(AppData* data, const char* path) {
+	if (!data->notebook)
+		return;
+
+	Gif* gif = gif_new(path);
+
+	if (gif->gif_width > 512 || gif->gif_height > 512) {
+		char error_message[256];
+		snprintf(error_message, sizeof(error_message), 
+				 "GIF je prevelik!\nDimenzije: %dx%d\nMaksimalne dozvoljene dimenzije: %dx%d", 
+				 gif->gif_width, gif->gif_height, 512, 512);
+
+		show_notification(data, error_message);
+		g_free(gif);
+		return;
+	}
+
+	data->gifs = g_list_append(data->gifs, gif);
+	open_gif_tab(data, gif);
+}
+
 void on_add_gif_clicked(GtkWidget* widget, gpointer d) {
-    AppData* data = (AppData*)d;
-    GtkWidget* dialog = gtk_file_chooser_dialog_new("Select GIF File",
-        GTK_WINDOW(data->window),
-        GTK_FILE_CHOOSER_ACTION_OPEN,
-        "_Cancel", GTK_RESPONSE_CANCEL,
-        "_Open", GTK_RESPONSE_ACCEPT,
-        NULL);
+	AppData* data = (AppData*)d;
+	GtkWidget* dialog = gtk_file_chooser_dialog_new("Select GIF File",
+													GTK_WINDOW(data->window),
+													GTK_FILE_CHOOSER_ACTION_OPEN,
+													"_Cancel", GTK_RESPONSE_CANCEL,
+													"_Open", GTK_RESPONSE_ACCEPT,
+													NULL);
 
-    if (!dialog) return;
+	if (!dialog) return;
 
-    GtkFileFilter* filter = gtk_file_filter_new();
-    gtk_file_filter_add_pattern(filter, "*.gif");
-    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+	GtkFileFilter* filter = gtk_file_filter_new();
+	gtk_file_filter_add_pattern(filter, "*.gif");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
-    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        if (filename) {
-            add_gif_tab(data, filename);
-            g_free(filename);
-        }
-    }
-    gtk_widget_destroy(dialog);
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		if (filename) {
+			add_gif_tab(data, filename);
+			g_free(filename);
+		}
+	}
+	gtk_widget_destroy(dialog);
 }
 
 void select_device(GtkWidget* widget, gpointer d) {
@@ -256,49 +227,49 @@ void start_stop(GtkWidget* widget, gpointer d) {
 }
 
 void refresh(GtkWidget* widget, gpointer d) {
-    AppData* data = (AppData*)d;
-    if(data->visualizer) {
-        start_stop(NULL, data);
-    }
+	AppData* data = (AppData*)d;
+	if(data->visualizer) {
+		start_stop(NULL, data);
+	}
 
-    refresh_stream(data->stream);
+	refresh_stream(data->stream);
 
-    if (GTK_IS_COMBO_BOX_TEXT(data->devices)) {
-        gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(data->devices));
-        int cnt = Pa_GetDeviceCount();
-        const PaDeviceInfo* device_info;
-        for (int dev = 0; dev < cnt; dev++) {
-            device_info = Pa_GetDeviceInfo(dev);
-            if (device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
-                char idbuf[32];
-                snprintf(idbuf, sizeof(idbuf), "%d", dev);
-                gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(data->devices), idbuf, device_info->name);
-            }
-        }
-        gtk_combo_box_set_active(GTK_COMBO_BOX(data->devices), -1);
-        device = -1;
-        return;
-    }
+	if (GTK_IS_COMBO_BOX_TEXT(data->devices)) {
+		gtk_combo_box_text_remove_all(GTK_COMBO_BOX_TEXT(data->devices));
+		int cnt = Pa_GetDeviceCount();
+		const PaDeviceInfo* device_info;
+		for (int dev = 0; dev < cnt; dev++) {
+			device_info = Pa_GetDeviceInfo(dev);
+			if (device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
+				char idbuf[32];
+				snprintf(idbuf, sizeof(idbuf), "%d", dev);
+				gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(data->devices), idbuf, device_info->name);
+			}
+		}
+		gtk_combo_box_set_active(GTK_COMBO_BOX(data->devices), -1);
+		device = -1;
+		return;
+	}
 
-    GList* children = gtk_container_get_children(GTK_CONTAINER(data->devices));
-    for (GList* iter = children; iter != NULL; iter = g_list_next(iter)) {
-        GtkWidget* menuItem = GTK_WIDGET(iter->data);
-        gtk_widget_destroy(menuItem);
-    }
-    g_list_free(children);
+	GList* children = gtk_container_get_children(GTK_CONTAINER(data->devices));
+	for (GList* iter = children; iter != NULL; iter = g_list_next(iter)) {
+		GtkWidget* menuItem = GTK_WIDGET(iter->data);
+		gtk_widget_destroy(menuItem);
+	}
+	g_list_free(children);
 
-    int cnt = Pa_GetDeviceCount();
-    const PaDeviceInfo* device_info;
-    for (int device = 0; device < cnt; device++) {
-        device_info = Pa_GetDeviceInfo(device);
-        if(device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
-            GtkWidget* menuItem = gtk_menu_item_new_with_label(device_info->name);
-            g_signal_connect(G_OBJECT(menuItem), "activate", G_CALLBACK(select_device), GINT_TO_POINTER(device));
-            gtk_menu_shell_append(GTK_MENU_SHELL(data->devices), menuItem);
-            gtk_widget_show(menuItem);
-        }
-    }
-    device = -1;
+	int cnt = Pa_GetDeviceCount();
+	const PaDeviceInfo* device_info;
+	for (int device = 0; device < cnt; device++) {
+		device_info = Pa_GetDeviceInfo(device);
+		if(device_info->maxInputChannels > 0 && device_info->maxInputChannels < 8) {
+			GtkWidget* menuItem = gtk_menu_item_new_with_label(device_info->name);
+			g_signal_connect(G_OBJECT(menuItem), "activate", G_CALLBACK(select_device), GINT_TO_POINTER(device));
+			gtk_menu_shell_append(GTK_MENU_SHELL(data->devices), menuItem);
+			gtk_widget_show(menuItem);
+		}
+	}
+	device = -1;
 }
 
 void set_radius(GtkWidget* widget, gpointer d) {
@@ -345,62 +316,62 @@ void set_alpha(GtkWidget* widget, gpointer d) {
 }
 
 void close_dav(GtkWidget* window, gpointer d) {
-    AppData* data = (AppData*)d;
+	AppData* data = (AppData*)d;
 
-    if (data->notebook) {
-        int num_pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(data->notebook));
-        for (int i = 0; i < num_pages; i++) {
-            GtkWidget* page = gtk_notebook_get_nth_page(GTK_NOTEBOOK(data->notebook), i);
-            if (page) {
-                gulong handler_id = g_signal_handler_find(page, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, on_gif_tab_destroyed, NULL);
-                if (handler_id > 0) {
-                    g_signal_handler_disconnect(page, handler_id);
-                }
-            }
-        }
-    }
-    
-    if (data->gifs) {
-        GList* iter = data->gifs;
-        while (iter) {
-            Gif* gif = (Gif*)iter->data;
-            if (gif) {
-                gif_free(gif);
-            }
-            iter = g_list_next(iter);
-        }
-        g_list_free(data->gifs);
-        data->gifs = NULL;
-    }
-    
-    if(data->overlay != NULL) {
-        gtk_widget_destroy(data->overlay);
-        data->overlay = NULL;
-    }
-    
-    close_stream(data->stream);
-    
-    if (data->input_region) {
-        cairo_region_destroy(data->input_region);
-        data->input_region = NULL;
-    }
-    
-    if (data->settings) {
-        free(data->settings->path);
-        data->settings->path = NULL;
-        free(data->settings);
-        data->settings = NULL;
-    }
-    
-    if (data->stream) {
-        free(data->stream);
-        data->stream = NULL;
-    }
-    
-    free(data);
+	if (data->notebook) {
+		int num_pages = gtk_notebook_get_n_pages(GTK_NOTEBOOK(data->notebook));
+		for (int i = 0; i < num_pages; i++) {
+			GtkWidget* page = gtk_notebook_get_nth_page(GTK_NOTEBOOK(data->notebook), i);
+			if (page) {
+				gulong handler_id = g_signal_handler_find(page, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, on_gif_tab_destroyed, NULL);
+				if (handler_id > 0) {
+					g_signal_handler_disconnect(page, handler_id);
+				}
+			}
+		}
+	}
+
+	if (data->gifs) {
+		GList* iter = data->gifs;
+		while (iter) {
+			Gif* gif = (Gif*)iter->data;
+			if (gif) {
+				gif_free(gif);
+			}
+			iter = g_list_next(iter);
+		}
+		g_list_free(data->gifs);
+		data->gifs = NULL;
+	}
+
+	if(data->overlay != NULL) {
+		gtk_widget_destroy(data->overlay);
+		data->overlay = NULL;
+	}
+
+	close_stream(data->stream);
+
+	if (data->input_region) {
+		cairo_region_destroy(data->input_region);
+		data->input_region = NULL;
+	}
+
+	if (data->settings) {
+		free(data->settings->path);
+		data->settings->path = NULL;
+		free(data->settings);
+		data->settings = NULL;
+	}
+
+	if (data->stream) {
+		free(data->stream);
+		data->stream = NULL;
+	}
+
+	free(data);
 
 #if defined(WIN32) || defined(_WIN32)
-    gtk_main_quit();
+	gtk_main_quit();
 #else
 	g_application_quit(G_APPLICATION(gtk_window_get_application(GTK_WINDOW(data->window))));
 #endif
@@ -412,9 +383,9 @@ gboolean on_window_delete(GtkWidget *window, GdkEvent *event, AppData *data) {
 }
 
 static void show_main_window(GtkMenuItem *item, AppData *data) {
-    if (GTK_IS_WINDOW(data->window)) {
-        gtk_window_present(GTK_WINDOW(data->window));
-    }
+	if (GTK_IS_WINDOW(data->window)) {
+		gtk_window_present(GTK_WINDOW(data->window));
+	}
 }
 
 static void setup_tray_icon(AppData *data) {
@@ -422,7 +393,7 @@ static void setup_tray_icon(AppData *data) {
 		"visualizer-indicator",
 		"audio-x-generic",
 		APP_INDICATOR_CATEGORY_APPLICATION_STATUS
-	);
+		);
 
 	GtkWidget *menu = gtk_menu_new();
 	GtkWidget *show_item = gtk_menu_item_new_with_label("Show Window");
@@ -437,6 +408,66 @@ static void setup_tray_icon(AppData *data) {
 
 	app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
 	app_indicator_set_menu(indicator, GTK_MENU(menu));
+}
+
+static void on_load_gifs_clicked(GtkButton* button, AppData* data) {
+	GtkWidget* dialog = gtk_file_chooser_dialog_new(
+		"Open GIF list",
+		GTK_WINDOW(data->window),
+		GTK_FILE_CHOOSER_ACTION_OPEN,
+		"_Cancel", GTK_RESPONSE_CANCEL,
+		"_Open", GTK_RESPONSE_ACCEPT,
+		NULL
+		);
+
+	GtkFileFilter* filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, "UWU files");
+	gtk_file_filter_add_pattern(filter, "*.uwu");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+		load_gifs(filename, data);
+		g_free(filename);
+	}
+
+	gtk_widget_destroy(dialog);
+}
+
+static void on_save_gifs_clicked(GtkButton* button, AppData* data) {
+	GtkWidget* dialog = gtk_file_chooser_dialog_new(
+		"Save GIF list",
+		GTK_WINDOW(data->window),
+		GTK_FILE_CHOOSER_ACTION_SAVE,
+		"_Cancel", GTK_RESPONSE_CANCEL,
+		"_Save", GTK_RESPONSE_ACCEPT,
+		NULL
+		);
+
+	GtkFileFilter* filter = gtk_file_filter_new();
+	gtk_file_filter_set_name(filter, "UWU files");
+	gtk_file_filter_add_pattern(filter, "*.uwu");
+	gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+
+		const char* ext = strrchr(filename, '.');
+		char* final_name = NULL;
+		if (!ext || g_ascii_strcasecmp(ext, ".uwu") != 0) {
+			final_name = g_strconcat(filename, ".uwu", NULL);
+		} else {
+			final_name = g_strdup(filename);
+		}
+
+		save_gifs(final_name, data);
+		g_free(final_name);
+		g_free(filename);
+	}
+
+	gtk_widget_destroy(dialog);
 }
 
 
@@ -558,6 +589,16 @@ void create_window(AppData* data) {
 	g_signal_connect(alpha, "value-changed", G_CALLBACK(set_alpha), data);
 	gtk_grid_attach(GTK_GRID(settings_grid), gtk_label_new("Alpha"), 0, row, 1, 1);
 	gtk_grid_attach(GTK_GRID(settings_grid), alpha, 1, row++, 1, 1);
+
+
+	GtkWidget* load_btn = gtk_button_new_with_label("Load GIFs");
+	GtkWidget* save_btn = gtk_button_new_with_label("Save GIFs");
+
+	g_signal_connect(load_btn, "clicked", G_CALLBACK(on_load_gifs_clicked), data);
+	g_signal_connect(save_btn, "clicked", G_CALLBACK(on_save_gifs_clicked), data);
+
+	gtk_box_pack_start(GTK_BOX(controls_box), load_btn, FALSE, FALSE, 6);
+	gtk_box_pack_start(GTK_BOX(controls_box), save_btn, FALSE, FALSE, 6);
 
 	gtk_notebook_append_page(GTK_NOTEBOOK(data->notebook), settings_tab, gtk_label_new("Visualizer"));
 

@@ -22,16 +22,4 @@ typedef struct {
 	GtkWidget* notebook;
 } AppData;
 
-typedef struct {
-	GdkPixbufAnimation* gif_anim;
-	GdkPixbufAnimationIter* gif_iter;
-	char* path;
-
-	int gif_x;
-	int gif_y;
-	int gif_width;
-	int gif_height;
-} Gif;
-
-
 #endif

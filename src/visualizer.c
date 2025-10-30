@@ -1,5 +1,6 @@
 #include "visualizer.h"
 #include "data.h"
+#include "gif.h"
 
 #if defined(__linux__)
   #include "wayland.h"
