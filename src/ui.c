@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include "gif.h"
 
-#if !defined(WIN32) && !defined(_WIN32)
+#if defined(WIN32) || defined(_WIN32)
+#else
 #include <libayatana-appindicator/app-indicator.h>
 #endif
 

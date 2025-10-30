@@ -2,8 +2,6 @@
 #include "visualizer.h"
 #include <gio/gio.h>
 
-#include <libayatana-appindicator/app-indicator.h>
-
 #if defined(WIN32) || defined(_WIN32)
 extern GResource *resources_get_resource(void);
 
