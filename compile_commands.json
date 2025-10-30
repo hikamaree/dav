@@ -5,6 +5,7 @@
       "-Wall",
       "-Ilib",
       "-O3",
+      "-Wno-deprecated-declarations",
       "-D__linux__",
       "-I/usr/include/gtk-layer-shell",
       "-I/usr/include/libayatana-appindicator3-0.1",
@@ -36,11 +37,11 @@
       "-pthread",
       "-c",
       "-o",
-      "build/lin/ui.o",
-      "src/ui.c"
+      "build/lin/visualizer.o",
+      "src/visualizer.c"
     ],
     "directory": "/home/marko/repos/dav",
-    "file": "/home/marko/repos/dav/src/ui.c",
-    "output": "/home/marko/repos/dav/build/lin/ui.o"
+    "file": "/home/marko/repos/dav/src/visualizer.c",
+    "output": "/home/marko/repos/dav/build/lin/visualizer.o"
   }
 ]

@@ -368,8 +368,6 @@ void close_dav(GtkWidget* window, gpointer d) {
 		data->stream = NULL;
 	}
 
-	free(data);
-
 #if defined(WIN32) || defined(_WIN32)
 	gtk_main_quit();
 #else

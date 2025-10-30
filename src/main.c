@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
 	open_overlay(data);
 	gtk_main();
 #else
-	GtkApplication *app = gtk_application_new("org.dav.visualizer", G_APPLICATION_FLAGS_NONE);
+	GtkApplication *app = gtk_application_new("org.dav.visualizer", G_APPLICATION_DEFAULT_FLAGS);
 	g_signal_connect(app, "activate", G_CALLBACK(on_app_activate), data);
 	int status = g_application_run(G_APPLICATION(app), argc, argv);
 	g_object_unref(app);

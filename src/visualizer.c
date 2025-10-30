@@ -42,9 +42,6 @@ void draw_visualizer(GtkWidget* widget, cairo_t* cr, AppData* data) {
     cairo_fill(cr);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
 void draw_gifs(GtkWidget* widget, cairo_t* cr, AppData* data) {
 	for (GList* l = data->gifs; l != NULL; l = l->next) {
 		Gif* gif = (Gif*)l->data;
@@ -75,8 +72,6 @@ void draw_gifs(GtkWidget* widget, cairo_t* cr, AppData* data) {
 			gtk_widget_queue_draw(widget);
 	}
 }
-
-#pragma GCC diagnostic pop
 
 gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
     AppData* data = (AppData*)d;

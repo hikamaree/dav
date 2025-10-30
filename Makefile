@@ -22,7 +22,7 @@ W_SRCS = $(filter-out $(SRC)/wayland.c $(SRC)/x11.c,$(SRCS))
 L_OBJS = $(L_SRCS:$(SRC)/%.c=$(BUILD)/lin/%.o)
 W_OBJS = $(W_SRCS:$(SRC)/%.c=$(BUILD)/win/%.o)
 
-FLAGS = -Wall -I$(LIB) -O3 -MD -MP
+FLAGS = -Wall -I$(LIB) -O3 -MD -MP -Wno-deprecated-declarations
 L_CFLAGS = $(FLAGS) -D__linux__ $(shell $(PKG) --cflags gtk+-3.0 gtk-layer-shell-0 ayatana-appindicator3-0.1)
 W_CFLAGS = $(FLAGS) -DWIN32 -D_WIN32 $(shell $(MXE_PKG) --cflags gtk+-3.0)
 L_LDFLAGS = $(shell $(PKG) --libs gtk+-3.0 gtk-layer-shell-0 ayatana-appindicator3-0.1) -lportaudio -lm -lwayland-client -lX11 -lXfixes

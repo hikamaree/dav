@@ -4,8 +4,6 @@
 #include "ui.h"
 
 Gif* gif_new(const char* path) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	Gif* g = malloc(sizeof(Gif));
 	if (!g) return NULL;
 
@@ -28,7 +26,6 @@ Gif* gif_new(const char* path) {
 	g->gif_width = gdk_pixbuf_animation_get_width(g->gif_anim);
 	g->gif_height = gdk_pixbuf_animation_get_height(g->gif_anim);
 	return g;
-#pragma GCC diagnostic pop
 }
 
 void gif_free(Gif* g) {
