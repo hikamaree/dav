@@ -26,8 +26,9 @@ static void setup_bundled_schemas(void) {
 		g_bytes_unref(schema_bytes);
 	}
 }
-#else
+#endif
 
+#if defined(__linux__)
 static void on_app_activate(GtkApplication *app, gpointer user_data) {
 	AppData *data = user_data;
 
@@ -51,6 +52,13 @@ int main(int argc, char *argv[]) {
 #if defined(WIN32) || defined(_WIN32)
 	gtk_init(&argc, &argv);
 	setup_bundled_schemas();
+	create_window(data);
+	open_overlay(data);
+	gtk_main();
+#elif defined(__APPLE__)
+	// Set GSettings schema directory for macOS
+	g_setenv("GSETTINGS_SCHEMA_DIR", "/opt/homebrew/share/glib-2.0/schemas", TRUE);
+	gtk_init(&argc, &argv);
 	create_window(data);
 	open_overlay(data);
 	gtk_main();

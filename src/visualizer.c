@@ -7,6 +7,8 @@
   #include "x11.h"
 #elif defined(WIN32) || defined(_WIN32)
   #include "win32_overlay.h"
+#elif defined(__APPLE__)
+  #include "macos_helper.h"
 #endif
 
 int device = -1;
@@ -91,6 +93,29 @@ gboolean draw_overlay(GtkWidget* widget, cairo_t* cr, gpointer d) {
 void open_overlay(AppData* data) {
 #if defined(WIN32) || defined(_WIN32)
 	open_win32_overlay(data);
+#elif defined(__APPLE__)
+	// macOS overlay - simple window approach
+	data->overlay = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	gtk_window_set_decorated(GTK_WINDOW(data->overlay), FALSE);
+	gtk_widget_set_app_paintable(data->overlay, TRUE);
+	gtk_widget_set_visual(data->overlay, gdk_screen_get_rgba_visual(gdk_screen_get_default()));
+	gtk_window_set_default_size(GTK_WINDOW(data->overlay), 1920, 1080);
+	gtk_window_set_keep_above(GTK_WINDOW(data->overlay), TRUE);
+	gtk_window_set_accept_focus(GTK_WINDOW(data->overlay), FALSE);
+	gtk_window_set_type_hint(GTK_WINDOW(data->overlay), GDK_WINDOW_TYPE_HINT_DOCK);
+	
+	GdkRectangle monitor_geometry;
+	gdk_monitor_get_geometry(gdk_display_get_primary_monitor(gdk_display_get_default()), &monitor_geometry);
+	gtk_window_move(GTK_WINDOW(data->overlay), monitor_geometry.x, monitor_geometry.y);
+	gtk_window_resize(GTK_WINDOW(data->overlay), monitor_geometry.width, monitor_geometry.height);
+	
+	g_signal_connect(G_OBJECT(data->overlay), "draw", G_CALLBACK(draw_overlay), data);
+	gtk_widget_show_all(data->overlay);
+	
+	gdk_window_set_pass_through(gtk_widget_get_window(data->overlay), TRUE);
+	
+	// Make window visible on all Spaces/Desktops
+	macos_set_window_on_all_spaces(gtk_widget_get_window(data->overlay));
 #elif defined(__linux__)
 	if (getenv("WAYLAND_DISPLAY")) {
 		open_wayland_overlay(data);
@@ -103,6 +128,11 @@ void open_overlay(AppData* data) {
 void close_overlay(AppData* data) {
 #if defined(WIN32) || defined(_WIN32)
 	close_win32_overlay(data);
+#elif defined(__APPLE__)
+	if (data->overlay) {
+		gtk_widget_destroy(data->overlay);
+		data->overlay = NULL;
+	}
 #elif defined(__linux__)
 	if (getenv("WAYLAND_DISPLAY")) {
 		close_wayland_overlay(data);

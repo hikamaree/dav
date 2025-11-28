@@ -20,6 +20,9 @@ typedef struct {
 	bool visualizer;
 	GList* gifs;
 	GtkWidget* notebook;
+#ifdef __APPLE__
+	void* native_window; // Native macOS window
+#endif
 } AppData;
 
 #endif

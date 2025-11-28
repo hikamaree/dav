@@ -8,6 +8,9 @@ LIB = lib
 BUILD = build
 RES = resources
 
+# Detect OS
+UNAME_S := $(shell uname -s)
+
 MXE = /home/user/mxe
 TGT = x86_64-w64-mingw32.static
 MXE_CC = $(MXE)/usr/bin/$(TGT)-gcc
@@ -24,18 +27,29 @@ L_RES_O = $(BUILD)/lin/resources.o
 SRCS = $(wildcard $(SRC)/*.c)
 L_SRCS = $(filter-out $(SRC)/win32_overlay.c,$(SRCS))
 W_SRCS = $(filter-out $(SRC)/wayland.c $(SRC)/x11.c,$(SRCS))
+M_SRCS = $(filter-out $(SRC)/win32_overlay.c $(SRC)/wayland.c $(SRC)/x11.c,$(SRCS))
+M_OBJC_SRCS = $(wildcard $(SRC)/*.m)
 L_OBJS = $(L_SRCS:$(SRC)/%.c=$(BUILD)/lin/%.o)
 W_OBJS = $(W_SRCS:$(SRC)/%.c=$(BUILD)/win/%.o)
+M_OBJS = $(M_SRCS:$(SRC)/%.c=$(BUILD)/mac/%.o) $(M_OBJC_SRCS:$(SRC)/%.m=$(BUILD)/mac/%.o)
 
 FLAGS = -Wall -I$(LIB) -O3 -MD -MP -Wno-deprecated-declarations
 L_CFLAGS = $(FLAGS) -D__linux__ $(shell $(PKG) --cflags gtk+-3.0 gtk-layer-shell-0 ayatana-appindicator3-0.1)
 W_CFLAGS = $(FLAGS) -DWIN32 -D_WIN32 $(shell $(MXE_PKG) --cflags gtk+-3.0)
+M_CFLAGS = $(FLAGS) -D__APPLE__ $(shell $(PKG) --cflags gtk+-3.0) -I/opt/homebrew/include
 L_LDFLAGS = $(shell $(PKG) --libs gtk+-3.0 gtk-layer-shell-0 ayatana-appindicator3-0.1) -lportaudio -lm -lwayland-client -lX11 -lXfixes
 W_LDFLAGS = -mwindows $(shell $(MXE_PKG) --libs gtk+-3.0) -lportaudio -lm -lwinmm -lsetupapi -lole32
+M_LDFLAGS = $(shell $(PKG) --libs gtk+-3.0) -L/opt/homebrew/lib -lportaudio -lm -framework Cocoa -framework CoreFoundation
 
-.PHONY: all windows run clean
+.PHONY: all windows mac run clean
 
+ifeq ($(UNAME_S),Linux)
 all: $(BUILD)/lin/dav
+else ifeq ($(UNAME_S),Darwin)
+all: $(BUILD)/mac/dav
+else
+all: $(BUILD)/lin/dav
+endif
 
 # linux
 $(BUILD)/lin/dav: $(L_OBJS) $(L_RES_O)
@@ -77,8 +91,33 @@ $(RES)/schemas/gschemas.compiled:
 	@cp $(MXE_SCH)/*.xml $(RES)/schemas/ 2>/dev/null || true
 	@$(MXE_GSCH) $(RES)/schemas
 
+# macOS
+mac: $(BUILD)/mac/dav
+
+$(BUILD)/mac/dav: $(M_OBJS) $(BUILD)/mac/resources.o
+	$(CC) $^ -o $@ $(M_LDFLAGS)
+
+$(BUILD)/mac/%.o: $(SRC)/%.c | $(BUILD)/mac
+	$(CC) $(M_CFLAGS) -c $< -o $@
+
+$(BUILD)/mac/%.o: $(SRC)/%.m | $(BUILD)/mac
+	$(CC) $(M_CFLAGS) -c $< -o $@
+
+$(BUILD)/mac:
+	@$(MKDIR) $@
+
+$(BUILD)/mac/resources.o: $(BUILD)/mac/resources.c
+	$(CC) $(M_CFLAGS) -c $< -o $@
+
+$(BUILD)/mac/resources.c: $(L_RES_XML) icon.png | $(BUILD)/mac
+	$(L_GRES) --target=$@ --generate-source --sourcedir=. $<
+
 run: all
+ifeq ($(UNAME_S),Darwin)
+	./$(BUILD)/mac/dav
+else
 	./$(BUILD)/lin/dav
+endif
 
 clean:
 	@$(RM) $(BUILD) $(RES)

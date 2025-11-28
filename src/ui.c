@@ -3,9 +3,12 @@
 #include <stdio.h>
 #include "gif.h"
 
-#if defined(WIN32) || defined(_WIN32)
-#else
+#if defined(__linux__)
 #include <libayatana-appindicator/app-indicator.h>
+#endif
+
+#if defined(__APPLE__)
+#include "macos_helper.h"
 #endif
 
 void show_notification(AppData* data, const char* message) {
@@ -371,7 +374,13 @@ void close_dav(GtkWidget* window, gpointer d) {
 		data->stream = NULL;
 	}
 
-#if defined(WIN32) || defined(_WIN32)
+#if defined(__APPLE__)
+	if (data->native_window) {
+		macos_destroy_settings_window(data->native_window);
+		data->native_window = NULL;
+	}
+	gtk_main_quit();
+#elif defined(WIN32) || defined(_WIN32)
 	gtk_main_quit();
 #else
 	g_application_quit(G_APPLICATION(gtk_window_get_application(GTK_WINDOW(data->window))));
@@ -383,14 +392,30 @@ gboolean on_window_delete(GtkWidget *window, GdkEvent *event, AppData *data) {
 	return TRUE;
 }
 
-static void show_main_window(GtkMenuItem *item, AppData *data) {
-	if (GTK_IS_WINDOW(data->window)) {
-		gtk_window_present(GTK_WINDOW(data->window));
-	}
+#if defined(__APPLE__)
+static gboolean on_window_focus_in(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	// Force window activation on macOS to prevent unresponsive UI
+	gtk_window_present(GTK_WINDOW(widget));
+	return FALSE;
 }
 
-#if defined(WIN32) || defined(_WIN32)
-#else
+static gboolean on_button_press(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+	// Ensure window stays active after clicks on macOS
+	GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+	if (GTK_IS_WINDOW(toplevel)) {
+		gtk_window_present(GTK_WINDOW(toplevel));
+	}
+	return FALSE;
+}
+#endif
+
+// static void show_main_window(GtkMenuItem *item, AppData *data) {
+// 	if (GTK_IS_WINDOW(data->window)) {
+// 		gtk_window_present(GTK_WINDOW(data->window));
+// 	}
+// }
+
+#if defined(__linux__)
 static void setup_tray_icon(AppData *data) {
 	AppIndicator *indicator = app_indicator_new(
 		"visualizer-indicator",
@@ -499,7 +524,12 @@ void create_window(AppData* data) {
 	data->input_region = cairo_region_create();
 	data->stream->speed = data->settings->speed;
 
-#if defined(WIN32) || defined(_WIN32)
+#if defined(__APPLE__)
+	// Use native macOS window instead of GTK
+	data->native_window = macos_create_settings_window(data);
+	macos_show_settings_window(data->native_window);
+	return;
+#elif defined(WIN32) || defined(_WIN32)
 	data->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	g_signal_connect(G_OBJECT(data->window), "destroy", G_CALLBACK(close_dav), data);
 #else
@@ -627,4 +657,14 @@ void create_window(AppData* data) {
 
 	gtk_container_add(GTK_CONTAINER(data->window), outer_box);
 	gtk_widget_show_all(data->window);
+
+#if defined(__APPLE__)
+	// Connect focus and button handlers to keep window responsive on macOS
+	g_signal_connect(data->window, "focus-in-event", G_CALLBACK(on_window_focus_in), NULL);
+	gtk_widget_add_events(data->window, GDK_BUTTON_PRESS_MASK);
+	g_signal_connect(data->window, "button-press-event", G_CALLBACK(on_button_press), NULL);
+	
+	// Force initial activation
+	gtk_window_present(GTK_WINDOW(data->window));
+#endif
 }
